@@ -153,6 +153,11 @@ public class SongController {
 
     }
 
+    @GetMapping("/autoplay")
+    public ResponseEntity<?> autoPlaySong( ) {
+        return ResponseEntity.ok(songRepo.findAll());
+    }
+
 
 }
 
