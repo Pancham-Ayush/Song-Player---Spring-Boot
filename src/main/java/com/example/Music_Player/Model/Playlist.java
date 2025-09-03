@@ -32,4 +32,6 @@ public class Playlist {
     )
     @JsonIgnore
     private List<Song> songs = new ArrayList<>();
+
+    private boolean publicplaylist;     // camelCase for Java
 }
