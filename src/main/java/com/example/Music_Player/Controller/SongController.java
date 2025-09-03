@@ -18,6 +18,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,6 +33,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
+
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 
 @RestController
 public class SongController {
@@ -123,15 +128,22 @@ public class SongController {
 
 
     @GetMapping("/allsongs")
-    public ResponseEntity<Page<Song>> getAllSongs(
+    public ResponseEntity<Map<String, Object>> getAllSongs(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "15") int chunk) {
+            @RequestParam(defaultValue = "20") int chunk) {
 
-        Pageable pageable = (Pageable) PageRequest.of(page, chunk);
+        Pageable pageable = PageRequest.of(page, chunk);
         Page<Song> songs = songRepo.findAll(pageable);
 
-        return ResponseEntity.ok(songs);
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", songs.getContent()); // actual songs array
+        response.put("totalPages", songs.getTotalPages());
+        response.put("currentPage", songs.getNumber());
+        response.put("totalElements", songs.getTotalElements());
+
+        return ResponseEntity.ok(response);
     }
+
     @GetMapping("/allsongs/delete")
     public ResponseEntity<?> getAllSongs(){
 

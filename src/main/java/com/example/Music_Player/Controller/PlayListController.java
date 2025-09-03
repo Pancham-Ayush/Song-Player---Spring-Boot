@@ -8,11 +8,13 @@ import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+
 
 @RestController
 public class PlayListController {
@@ -45,6 +47,10 @@ public class PlayListController {
         Playlist playlist = new Playlist();
         playlist.setName(playlistName);
         playlist.setUserId(user.getId());
+        String publicPlaylistStr = request.get("public_playlist");
+        boolean isPublic = "true".equalsIgnoreCase(publicPlaylistStr);
+        System.out.println(publicPlaylistStr);
+        playlist.setPublicplaylist(isPublic);
         playlistRepo.save(playlist);
 
         return ResponseEntity.ok(Map.of("message", "Playlist created successfully"));
@@ -141,5 +147,10 @@ public class PlayListController {
 
         List<Song> songs = playlistOpt.get().getSongs();
         return ResponseEntity.ok(Map.of("songs", songs));
+    }
+
+    @GetMapping("/publicplaylist")
+    public ResponseEntity<?> getPublicPlaylist() {
+        return ResponseEntity.ok(Map.of("public_playlist", playlistRepo.findPlaylistsBypublicplaylist(true)));
     }
 }
