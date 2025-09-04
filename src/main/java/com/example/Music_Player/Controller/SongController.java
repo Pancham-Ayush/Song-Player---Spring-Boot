@@ -2,23 +2,17 @@ package com.example.Music_Player.Controller;
 
 import com.example.Music_Player.Model.Admin;
 import com.example.Music_Player.Model.Song;
-import com.example.Music_Player.Model.User;
 import com.example.Music_Player.Repository.AdminRepo;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
 import com.example.Music_Player.Service.DeleteService;
 import com.example.Music_Player.Service.SongService;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,9 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
-
-@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 
 @RestController
 public class SongController {
@@ -64,7 +55,7 @@ public class SongController {
         if (!"audio/mpeg".equalsIgnoreCase(file.getContentType())) {
             return ResponseEntity.badRequest().body("Only MP3 files are allowed!");
         }
-        Admin admin =adminRepo.findAdminByEmail(mail);
+        Admin admin =adminRepo.getAdminByEmail(mail);
         if (admin != null) {
             Song saved = songService.addSong(song, file);
             Map<String, String> response = new HashMap<>();
@@ -80,7 +71,7 @@ public class SongController {
     @GetMapping("/get/{songid}")
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid,
                                             @RequestHeader(value = "Range", required = false) String range) {
-        Optional<Song> song = songRepo.findById(Long.parseLong(songid));
+        Optional<Song> song = songRepo.findById(songid);
         if (song.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -132,34 +123,35 @@ public class SongController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int chunk) {
 
-        Pageable pageable = PageRequest.of(page, chunk);
-        Page<Song> songs = songRepo.findAll(pageable);
+        List<Song> songs = songRepo.findAll(page, chunk);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("content", songs.getContent()); // actual songs array
-        response.put("totalPages", songs.getTotalPages());
-        response.put("currentPage", songs.getNumber());
-        response.put("totalElements", songs.getTotalElements());
+        response.put("content", songs); // actual songs array
+        // DynamoDB scan does not provide total pages/elements easily without a full scan
+        // For a more robust solution, consider DynamoDB pagination with lastEvaluatedKey
+        response.put("totalPages", -1); // Indicate not easily available
+        response.put("currentPage", page);
+        response.put("totalElements", -1); // Indicate not easily available
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/allsongs/delete")
-    public ResponseEntity<?> getAllSongs(){
+    public ResponseEntity<?> getAllSongsForDelete(){
 
-        LinkedList<Song> songs = new LinkedList<>(songRepo.findAll());
+        List<Song> songs = songRepo.findAll();
 
         return ResponseEntity.ok(Map.of("songs", songs));
     }
     @PostMapping("/delete")
     public ResponseEntity<?> deleteSong(@RequestBody Map<String, String> map) {
-        Song song = songRepo.findById(Long.parseLong(map.get("id"))).orElse(null);
+        Song song = songRepo.findById(map.get("id")).orElse(null);
         if (song == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
         }
             Path path = Paths.get(song.getPath());
             path.toFile().delete();
-            deleteService.deleteSong(Long.valueOf(map.get("id")));
+            deleteService.deleteSong(map.get("id"));
             return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
 
 

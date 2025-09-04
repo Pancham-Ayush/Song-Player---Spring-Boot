@@ -1,37 +1,40 @@
 package com.example.Music_Player.Model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-@Entity
+@DynamoDbBean
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Playlist {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private String id= UUID.randomUUID().toString();
     private String name;
-    private Long userId;
-
-    @ManyToMany
-    @JoinTable(
-            name = "playlist_song",
-            joinColumns = @JoinColumn(name = "playlist_id"),
-            inverseJoinColumns = @JoinColumn(name = "song_id")
-    )
-    @JsonIgnore
+    private String userEmail;
     private List<Song> songs = new ArrayList<>();
+    private String publicplaylist;
 
-    private boolean publicplaylist;     // camelCase for Java
+    @DynamoDbPartitionKey
+    public String getId() {
+        return id;
+    }
+    @DynamoDbSecondaryPartitionKey(indexNames = "UserEmailIndex")
+    public String getUserEmail() {
+        return userEmail;
+    }
+    @DynamoDbSecondaryPartitionKey(indexNames = "PublicPlaylistIndex")
+    public String getPublicplaylist() {
+        return publicplaylist;
+    }
 }

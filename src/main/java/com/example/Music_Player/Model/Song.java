@@ -1,32 +1,33 @@
 package com.example.Music_Player.Model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
-import java.util.List;
+import java.util.UUID;
 
-@Entity
+
+@DynamoDbBean
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Song {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment ID
-    Long id;
+
+    String id = UUID.randomUUID().toString();
     String name;
     String artist;
     String genre;
     String description;
     String path;
-    // Removed bidirectional mapping to avoid database schema issues
-     @ManyToMany(mappedBy = "songs")
-     @JsonIgnore
-     private List<Playlist> playlists;
+
+    @DynamoDbPartitionKey
+    public String getId() {
+        return id;
+    }
 
 
 }

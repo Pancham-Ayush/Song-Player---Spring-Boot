@@ -41,16 +41,15 @@ public class UserController {
         String email = request.get("email");
         String password = request.get("password");
 
+        User u = userService.Login(email, password);
 
-        if (userRepo.existsByEmail(email) && userRepo.findByEmail(email).getPassword().equals(password)) {
-            User u = userRepo.findByEmail(email);
-
+        if (u != null) {
             // Store in session
             session.setAttribute("user", u.getName());
             session.setAttribute("useremail", u.getEmail());
 
             boolean mobile = isMobile(httpServletRequest);
-            Admin admin = adminRepo.findAdminByEmail(u.getEmail());
+            Admin admin = adminRepo.getAdminByEmail(u.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "message", "Login successful",
@@ -67,10 +66,6 @@ public class UserController {
     @PostMapping("/createuser")
     public ResponseEntity<?> createUser(@RequestBody Map<String, String> request, HttpSession session, HttpServletRequest httpServletRequest) {
 
-        User user1 = userRepo.findByEmail(request.get("email"));
-
-        if (user1== null)
-        {
         User user = new User();
         user.setEmail(request.get("email"));
         user.setPassword(request.get("password"));
@@ -78,6 +73,8 @@ public class UserController {
 
         User u = userService.CreateUser(user);
 
+        if (u != null)
+        {
             session.setAttribute("user", u.getName());
             session.setAttribute("useremail", u.getEmail());
             boolean mobile = isMobile(httpServletRequest);
@@ -105,7 +102,7 @@ public class UserController {
     public ResponseEntity<?> currentUser(HttpSession session) {
         String user = (String) session.getAttribute("user");
         String email = (String) session.getAttribute("useremail");
-        Admin admin = adminRepo.findAdminByEmail(email);
+        Admin admin = adminRepo.getAdminByEmail(email);
         if (user != null && email != null) {
             return ResponseEntity.ok(Map.of(
                     "username", user,

@@ -5,8 +5,6 @@ import com.example.Music_Player.Repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 public class UserService {
     @Autowired
@@ -19,12 +17,12 @@ public class UserService {
         return user;
     }
     public User Login(String email, String password){
-        Optional <User> check1 = Optional.ofNullable(userRepo.findByEmail(email));
-        if(!check1.isPresent()){
+        User user = userRepo.findByEmail(email);
+        if(user == null){
             return null;
         }
-        if(check1.get().getPassword().equals(password)){
-            return userRepo.findByEmail(email);
+        if(user.getPassword().equals(password)){
+            return user;
         }
         return null;
 

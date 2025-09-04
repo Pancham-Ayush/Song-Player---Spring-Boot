@@ -6,9 +6,7 @@ import com.example.Music_Player.Model.User;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,9 +44,9 @@ public class PlayListController {
 
         Playlist playlist = new Playlist();
         playlist.setName(playlistName);
-        playlist.setUserId(user.getId());
+        playlist.setUserEmail(user.getEmail());
         String publicPlaylistStr = request.get("public_playlist");
-        boolean isPublic = "true".equalsIgnoreCase(publicPlaylistStr);
+        String isPublic = publicPlaylistStr.toLowerCase();
         System.out.println(publicPlaylistStr);
         playlist.setPublicplaylist(isPublic);
         playlistRepo.save(playlist);
@@ -56,22 +54,18 @@ public class PlayListController {
         return ResponseEntity.ok(Map.of("message", "Playlist created successfully"));
     }
 
-    @Transactional
     @PostMapping("/addtoplaylist")
     public ResponseEntity<?> addToPlaylist(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        String songIdStr = request.get("songid");
-        String playlistIdStr = request.get("playlistid");
+        String songId = request.get("songid");
+        String playlistId = request.get("playlistid");
 
-        if (email == null || songIdStr == null || playlistIdStr == null) {
+        if (email == null || songId == null || playlistId == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Email, song ID, and playlist ID are required"));
         }
 
         try {
-            Long songId = Long.parseLong(songIdStr);
-            Long playlistId = Long.parseLong(playlistIdStr);
-
             User user = userRepo.findByEmail(email);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -85,7 +79,7 @@ public class PlayListController {
             }
 
             Playlist playlist = playlistOpt.get();
-            if (!Objects.equals(playlist.getUserId(), user.getId())) {
+            if (!Objects.equals(playlist.getUserEmail(), user.getEmail())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("message", "Playlist does not belong to user"));
             }
@@ -98,18 +92,16 @@ public class PlayListController {
 
             Song song = songOpt.get();
 
-            if (playlist.getSongs().contains(song)) {
-                return ResponseEntity.ok(Map.of("message", "Song is already in the playlist"));
-            }
+            // Remove existing song if present
+            playlist.getSongs().removeIf(s -> s.getId().equals(song.getId()));
 
+            // Add song at the end
             playlist.getSongs().add(song);
+
             playlistRepo.save(playlist);
 
-            return ResponseEntity.ok(Map.of("message", "Song added to playlist successfully"));
+            return ResponseEntity.ok(Map.of("message", "Song added/moved to end of playlist successfully"));
 
-        } catch (NumberFormatException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Invalid song ID or playlist ID format"));
         } catch (Exception e) {
             e.printStackTrace(); // For debugging
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -132,12 +124,12 @@ public class PlayListController {
                     .body(Map.of("message", "No user found with email: " + email));
         }
 
-        List<Playlist> playlists = playlistRepo.findPlaylistsByUserId(user.getId());
+        List<Playlist> playlists = playlistRepo.findPlaylistsByUserEmail(user.getEmail());
         return ResponseEntity.ok(Map.of("playlists", playlists));
     }
 
     @GetMapping("/playlistsongs")
-    public ResponseEntity<?> getPlaylistSongs(@RequestParam("playlistid") Long playlistId) {
+    public ResponseEntity<?> getPlaylistSongs(@RequestParam("playlistid") String playlistId) {
         Optional<Playlist> playlistOpt = playlistRepo.findById(playlistId);
 
         if (playlistOpt.isEmpty()) {
@@ -151,6 +143,6 @@ public class PlayListController {
 
     @GetMapping("/publicplaylist")
     public ResponseEntity<?> getPublicPlaylist() {
-        return ResponseEntity.ok(Map.of("public_playlist", playlistRepo.findPlaylistsBypublicplaylist(true)));
+        return ResponseEntity.ok(Map.of("public_playlist", playlistRepo.findPlaylistsByPublicplaylist("true")));
     }
 }

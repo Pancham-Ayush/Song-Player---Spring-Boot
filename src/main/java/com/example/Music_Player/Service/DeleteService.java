@@ -4,9 +4,11 @@ import com.example.Music_Player.Model.Playlist;
 import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class DeleteService {
@@ -15,25 +17,16 @@ public class DeleteService {
     @Autowired
     PlaylistRepo playlistRepo;
 
-    @Transactional
-    public void deleteSong(Long songId) {
-        Song song = songRepo.findById(songId)
-                .orElseThrow(() -> new RuntimeException("Song not found"));
-
-        // Remove song from all playlists
-        for (Playlist playlist : song.getPlaylists()) {
-            playlist.getSongs().remove(song);
-            playlistRepo.save(playlist); // persist the removal
+    public void deleteSong(String songId) {
+        Optional<Song> songOptional = songRepo.findById(songId);
+        if (songOptional.isEmpty()) {
+            throw new RuntimeException("Song not found");
         }
+        Song songToDelete = songOptional.get();
 
-        // Clear playlists in song entity to avoid Hibernate issues
-        song.getPlaylists().clear();
-        songRepo.save(song);
+
 
         // Delete the song safely
-        songRepo.delete(song);
+        songRepo.deleteSong(songId);
     }
-
-
-
 }

@@ -1,4 +1,4 @@
-package com.example.Music_Player.WebConfig;
+package com.example.Music_Player.Config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
