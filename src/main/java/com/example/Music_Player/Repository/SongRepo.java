@@ -42,13 +42,19 @@ public class SongRepo {
         return song;
     }
 
+
+
     public List<Song> findAll() {
         return table.scan().items().stream().collect(Collectors.toList());
     }
 
     public List<Song> findAll(int page, int chunkSize) {
+
+
+
         ScanEnhancedRequest request = ScanEnhancedRequest.builder()
                 .limit(chunkSize)
+                .attributesToProject("id","name","artist")
                 .build();
 
         List<Page<Song>> pages = table.scan(request).stream().collect(Collectors.toList());

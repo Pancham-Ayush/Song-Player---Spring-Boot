@@ -6,6 +6,7 @@ import com.example.Music_Player.Repository.AdminRepo;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
+import com.example.Music_Player.Service.SongEmbeddingService;
 import com.example.Music_Player.Service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,8 @@ public class SongController {
     SongService songService;
     @Autowired
     SongRepo songRepo;
+    @Autowired
+    SongEmbeddingService  songEmbeddingService;
 
     @Autowired
     private UserRepo userRepo;
@@ -61,6 +64,7 @@ public class SongController {
             Song saved = songService.addSong(song, file);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Song saved successfully!");
+            songEmbeddingService.addSongs(song);
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -88,6 +92,7 @@ public class SongController {
 //bytes=starting-ending
 
         if (range != null) {
+            System.out.println(range);
             String rangeStart[] = range.replace("bytes=", "").split("-");
             start=Long.parseLong(rangeStart[0]);
             end = Long.parseLong(rangeStart[0])+chunkSize;
@@ -137,10 +142,10 @@ public class SongController {
         List<Song> songs = songRepo.findAll(page, chunk);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("content", songs); // actual songs array
-        response.put("totalPages", -1); // Indicate not easily available
+        response.put("content", songs);
+        response.put("totalPages", -1);
         response.put("currentPage", page);
-        response.put("totalElements", -1); // Indicate not easily available
+        response.put("totalElements", -1);
 
         return ResponseEntity.ok(response);
     }
@@ -159,7 +164,7 @@ public class SongController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
         }
         String key = song.getPath();
-
+            songRepo.deleteSong(key);
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
