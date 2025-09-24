@@ -6,7 +6,6 @@ import com.example.Music_Player.Repository.AdminRepo;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
-import com.example.Music_Player.Service.DeleteService;
 import com.example.Music_Player.Service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,13 +18,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -35,25 +33,28 @@ public class SongController {
     SongService songService;
     @Autowired
     SongRepo songRepo;
-    @Autowired
-    DeleteService deleteService;
 
-    @Value("${song.stream.chunk-size}")
-    Long chunkSize;
     @Autowired
     private UserRepo userRepo;
     @Autowired
     private AdminRepo adminRepo;
     @Autowired
     private PlaylistRepo playlistRepo;
+    @Autowired
+    S3Client s3Client;
+    @Value("${song.stream.chunk-size}")
+    Long chunkSize;
+    @Value("${aws.bucket}")
+    String bucket;
+    static List<String > SongContentType = List.of("audio/ogg","audio/mpeg");
 
     @PostMapping(value = "/upload")
     public ResponseEntity<?> uploadSong(@RequestPart("file") MultipartFile file,
                                         @RequestPart("song") Song song,
                                         @RequestPart("mail")String mail
                                         ) throws IOException {
-        if (!"audio/mpeg".equalsIgnoreCase(file.getContentType())) {
-            return ResponseEntity.badRequest().body("Only MP3 files are allowed!");
+        if (!SongContentType.contains(file.getContentType().toLowerCase())) {
+            return ResponseEntity.badRequest().body("Only MP3 / OGG files are allowed!");
         }
         Admin admin =adminRepo.getAdminByEmail(mail);
         if (admin != null) {
@@ -76,24 +77,34 @@ public class SongController {
             return ResponseEntity.notFound().build();
         }
 
-        Path path = Paths.get(song.get().getPath());
-        long fileLength = path.toFile().length();
+        String path =song.get().getPath();
+        long fileLength=song.get().getSize();
+        long start = 0, end ;
 
-        long start = 0;
-        long end = fileLength - 1;
-//bytes=starng-endig
+
+        GetObjectRequest.Builder headRequest = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(path);
+//bytes=starting-ending
+
         if (range != null) {
-            String[] ranges = range.replace("bytes=", "").split("-");
-            start = Long.parseLong(ranges[0]);
-            end = start+chunkSize;
-            if(end > fileLength-1) {
-                end = fileLength-1;
-            }
+            String rangeStart[] = range.replace("bytes=", "").split("-");
+            start=Long.parseLong(rangeStart[0]);
+            end = Long.parseLong(rangeStart[0])+chunkSize;
+            if (end > fileLength)
+                end=fileLength-1;
         }
+        else
+        {
+            end = chunkSize;
+        }
+        headRequest.range("bytes=" + start+"-"+end);
+
+        ResponseInputStream<GetObjectResponse> responseInputStream = s3Client.getObject(headRequest.build());
+        GetObjectResponse response = responseInputStream.response();
+
         System.out.println(" start - end  "+start+" "+end);
         try {
-            InputStream inputStream = Files.newInputStream(path);
-            inputStream.skip(start);
 
             HttpHeaders headers = new HttpHeaders();
             headers.add("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
@@ -101,7 +112,7 @@ public class SongController {
             headers.setContentLength(end - start + 1);
 
             // Detect MIME type (mp3, wav, etc.)
-            String mimeType = Files.probeContentType(path);
+            String mimeType = response.contentType();
             System.out.println(mimeType+" type");
             if (mimeType == null) {
                 mimeType = "application/octet-stream";
@@ -110,9 +121,9 @@ public class SongController {
             return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                     .headers(headers)
                     .contentType(MediaType.parseMediaType(mimeType))
-                    .body(new InputStreamResource(inputStream));
+                    .body(new InputStreamResource(responseInputStream));
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -127,8 +138,6 @@ public class SongController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", songs); // actual songs array
-        // DynamoDB scan does not provide total pages/elements easily without a full scan
-        // For a more robust solution, consider DynamoDB pagination with lastEvaluatedKey
         response.put("totalPages", -1); // Indicate not easily available
         response.put("currentPage", page);
         response.put("totalElements", -1); // Indicate not easily available
@@ -149,9 +158,13 @@ public class SongController {
         if (song == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
         }
-            Path path = Paths.get(song.getPath());
-            path.toFile().delete();
-            deleteService.deleteSong(map.get("id"));
+        String key = song.getPath();
+
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+
             return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
 
 

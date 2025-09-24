@@ -25,6 +25,9 @@ public class AdminRepo {
         return admin;
     }
     public Admin getAdminByEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be null or empty");
+        }
         return adminTable.getItem(r -> r.key(k -> k.partitionValue(email)));
     }
     public void deleteAdmin(String email) {

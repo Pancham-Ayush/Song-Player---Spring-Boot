@@ -23,6 +23,7 @@ public class Song {
     String genre;
     String description;
     String path;
+    Long size;
 
     @DynamoDbPartitionKey
     public String getId() {

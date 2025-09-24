@@ -7,11 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class SongService {
@@ -22,35 +28,36 @@ public class SongService {
     @Autowired
     public SongRepo songRepo;
 
-    @PostConstruct
-    public void init() {
-        try {
-            Path path = Paths.get(uploadDir).toAbsolutePath().normalize();
-            if (!Files.exists(path)) {
-                Files.createDirectories(path);
-                System.out.println("Upload dir created at: " + path);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    @Value("${aws.bucket}")
+    String bucket;
+    @Autowired
+    S3AsyncClient  s3AsyncClient;
+
+    CompletableFuture<PutObjectResponse> UploadASYNC(String path ,MultipartFile file) throws IOException {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(path)
+                .contentType(file.getContentType())
+                .build();
+
+        return s3AsyncClient.putObject(putObjectRequest,AsyncRequestBody.fromBytes(file.getBytes()));
+
+    };
+
 
     public Song addSong(Song song, MultipartFile file) {
         try {
-            Path path = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Files.createDirectories(path); // make sure folder exists
-
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            Path filePath = path.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            song.setPath(filePath.toString());
+            song.setPath(fileName);
+            song.setSize(file.getSize());
+            UploadASYNC(fileName, file);
             return songRepo.saveSong(song);
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // or throw custom exception
+            return null;
         }
     }
+
+
 
 
 
