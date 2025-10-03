@@ -1,6 +1,6 @@
 package com.example.Music_Player;
 
-import com.example.Music_Player.Repository.SongRepo;
+import com.example.Music_Player.Model.Song;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -8,19 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class Test
 {
     @Autowired
-    SongRepo songRepo;
-
+    AiService aiService;
     @org.junit.jupiter.api.Test
-    public void test() {
-        songRepo.findAll(0, 20).forEach(x ->
-                System.out.println(
-                        x.getId() + " jj " +
-                                x.getName() + " " +
-                                x.getArtist() + " " +
-                                x.getGenre() + " " +
-                                x.getDescription()
-                )
-        );
+    void contextLoads() throws InterruptedException {
+
+        for (Song song : aiService.aiSearch("happy")) {
+            System.out.println((song.getId())+song.getArtist());
+        }
     }
 
 }

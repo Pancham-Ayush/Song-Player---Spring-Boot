@@ -103,7 +103,6 @@ public class PlayListController {
             return ResponseEntity.ok(Map.of("message", "Song added/moved to end of playlist successfully"));
 
         } catch (Exception e) {
-            e.printStackTrace(); // For debugging
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Failed to add song to playlist"));
         }

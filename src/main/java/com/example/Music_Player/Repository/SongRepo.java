@@ -11,17 +11,22 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
 public class SongRepo {
 
-    @Autowired
-    DynamoDbEnhancedClient client;
+    final DynamoDbEnhancedClient client;
 
     DynamoDbTable<Song> table;
+
+    public SongRepo(DynamoDbEnhancedClient client) {
+        this.client = client;
+    }
 
     @PostConstruct
     void init() {
@@ -48,7 +53,7 @@ public class SongRepo {
         return table.scan().items().stream().collect(Collectors.toList());
     }
 
-    public List<Song> findAll(int page, int chunkSize) {
+    public Map<String,Object> findAll(int page, int chunkSize) {
 
 
 
@@ -58,12 +63,19 @@ public class SongRepo {
                 .build();
 
         List<Page<Song>> pages = table.scan(request).stream().collect(Collectors.toList());
+        int totalPages = pages.size();
 
-        if (page >= pages.size()) {
-            return List.of(); // Return empty list if page is out of bounds
-        }
+        List<Song> songs = (page < totalPages) ? pages.get(page).items() : List.of();
 
-        return pages.get(page).items();
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", songs);
+        result.put("currentPage", page);
+        result.put("totalPages", totalPages);
+        result.put("chunkSize", chunkSize);
+
+        return result;
     }
+
+
 
 }

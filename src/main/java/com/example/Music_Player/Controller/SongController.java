@@ -1,28 +1,30 @@
 package com.example.Music_Player.Controller;
 
 import com.example.Music_Player.Model.Admin;
+import com.example.Music_Player.Model.CacheMap;
 import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Repository.AdminRepo;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
 import com.example.Music_Player.Repository.UserRepo;
-import com.example.Music_Player.Service.SongEmbeddingService;
 import com.example.Music_Player.Service.SongService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
-
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.IOException;
 import java.util.*;
@@ -34,8 +36,6 @@ public class SongController {
     SongService songService;
     @Autowired
     SongRepo songRepo;
-    @Autowired
-    SongEmbeddingService  songEmbeddingService;
 
     @Autowired
     private UserRepo userRepo;
@@ -49,23 +49,52 @@ public class SongController {
     Long chunkSize;
     @Value("${aws.bucket}")
     String bucket;
-    static List<String > SongContentType = List.of("audio/ogg","audio/mpeg");
+    @Value("${Song.Cache}")
+    private int songCacheSize;
+
+    private Map<String, Song> songCacheTable;
+
+    @PostConstruct
+    public void initCache() {
+        songCacheTable = new CacheMap<>(songCacheSize);
+    }
+
+    private static final List<String> SongContentType = List.of(
+            "audio/mpeg",  // MP3
+            "audio/ogg",   // OGG
+            "audio/opus"   // OPUS codec
+    );
+
+
+
+
+
 
     @PostMapping(value = "/upload")
-    public ResponseEntity<?> uploadSong(@RequestPart("file") MultipartFile file,
+    public ResponseEntity<?> uploadSong(@RequestPart(value = "file" , required = false) MultipartFile file,
+                                        @RequestPart(value = "ytUrl" , required = false) String ytUrl,
                                         @RequestPart("song") Song song,
                                         @RequestPart("mail")String mail
-                                        ) throws IOException {
-        if (!SongContentType.contains(file.getContentType().toLowerCase())) {
+                                        ) throws IOException, InterruptedException {
+        if (file!=null && !SongContentType.contains(file.getContentType().toLowerCase())) {
             return ResponseEntity.badRequest().body("Only MP3 / OGG files are allowed!");
         }
+        else
+            System.out.println(ytUrl);
         Admin admin =adminRepo.getAdminByEmail(mail);
         if (admin != null) {
-            Song saved = songService.addSong(song, file);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Song saved successfully!");
-            songEmbeddingService.addSongs(song);
-            return ResponseEntity.ok(response);
+            if(file!=null) {
+                Song saved = songService.addSong(song, file);
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Song saved successfully!");
+                return ResponseEntity.ok(response);
+            }
+            else {
+                songService.uploadYoutubeAudioAsync(ytUrl,song);
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Song saved successfully!");
+                return ResponseEntity.ok(response);
+            }
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -75,20 +104,26 @@ public class SongController {
 
     @GetMapping("/get/{songid}")
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid,
-                                            @RequestHeader(value = "Range", required = false) String range) {
-        Optional<Song> song = songRepo.findById(songid);
-        if (song.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+                                            @RequestHeader(value = "Range", required = false) String range) throws IOException {
 
-        String path =song.get().getPath();
-        long fileLength=song.get().getSize();
+        // 1️⃣ Fetch song metadata (cache first)
+        Song song;
+        if (songCacheTable.containsKey(songid)) {
+            song = songCacheTable.get(songid);
+            System.out.println("Getting song from cache: " + song.getName());
+        } else {
+            song = songRepo.findById(songid).orElseThrow();
+            songCacheTable.put(songid, song);
+            System.out.println("Getting song from DB: " + song.getName());
+        }
+        String path =song.getPath();
+        long fileLength=song.getSize();
         long start = 0, end ;
 
 
         GetObjectRequest.Builder headRequest = GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(path);
+                .bucket(bucket)
+                .key(path);
 //bytes=starting-ending
 
         if (range != null) {
@@ -134,19 +169,13 @@ public class SongController {
     }
 
 
+
     @GetMapping("/allsongs")
     public ResponseEntity<Map<String, Object>> getAllSongs(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int chunk) {
+            @RequestParam(defaultValue = "5") int chunk) {
 
-        List<Song> songs = songRepo.findAll(page, chunk);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("content", songs);
-        response.put("totalPages", -1);
-        response.put("currentPage", page);
-        response.put("totalElements", -1);
-
+            Map<String,Object> response = songRepo.findAll(page, chunk);
         return ResponseEntity.ok(response);
     }
 
@@ -164,7 +193,7 @@ public class SongController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
         }
         String key = song.getPath();
-            songRepo.deleteSong(key);
+            songRepo.deleteSong(song.getId());
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
