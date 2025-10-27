@@ -1,6 +1,7 @@
 
 package com.example.Music_Player.Service;
 
+import com.example.Music_Player.Controller.Feign.YoutubeSearchClient;
 import com.example.Music_Player.Model.YoutubeVideo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,24 +24,29 @@ public class SearchYT {
     private String apiKey;
     @Autowired
     private AiService aiService;
-
-    public Map<String, Object> search(String search, String token) {
-        RestTemplate restTemplate = new RestTemplate();
-        Map<String, String> uriVariables = new HashMap();
-        uriVariables.put("search", search);
-        uriVariables.put("apiKey", this.apiKey);
+    @Autowired
+    private YoutubeSearchClient  youtubeSearchClient;
+    public Map<String, Object> search(String search, String pageToken) {
         String url = this.SEARCH_URL;
-        if (token != null && !token.isEmpty()) {
-            url = url + "&pageToken=" + token;
+        if (pageToken == null || pageToken.isEmpty()) {
+            pageToken=null;
         }
+        String response = youtubeSearchClient.ytSearchCall(
+                "snippet",
+                "video",
+                10,
+                search,
+                "moderate",
+                "viewCount",
+                apiKey,
+                pageToken
+        );
 
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity("" + url, String.class, uriVariables);
-        String jsonString = (String)responseEntity.getBody();
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = null;
 
         try {
-            root = mapper.readTree(jsonString);
+            root = mapper.readTree(response);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
