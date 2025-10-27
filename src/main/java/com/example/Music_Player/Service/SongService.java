@@ -101,11 +101,20 @@ public class SongService {
     }
 
     private static Process getProcess(String videoUrl, String tempOutputPath) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(new String[]{"yt-dlp", "-x", "--audio-format", "opus", "--audio-quality", "0", "--prefer-ffmpeg", "--ffmpeg-location", "/usr/bin/ffmpeg", "--force-overwrites", "-o", tempOutputPath, videoUrl});
+        ProcessBuilder pb = new ProcessBuilder(
+                "yt-dlp",
+                "-x", "--audio-format", "opus",
+                "--audio-quality", "0",
+                "--prefer-ffmpeg",
+                "--ffmpeg-location", "/usr/bin/ffmpeg",
+                "--force-overwrites",
+                "-o", tempOutputPath,
+                videoUrl
+        );
         pb.redirectErrorStream(true);
-        Process process = pb.start();
-        return process;
+        return pb.start();
     }
+
 
     public Song addSong(Song song, MultipartFile file) {
         try {
