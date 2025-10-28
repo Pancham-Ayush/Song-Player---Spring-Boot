@@ -41,9 +41,6 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-
 @RestController
 public class SongController {
     @Autowired
@@ -65,19 +62,11 @@ public class SongController {
     RedisService redisService;
     @Autowired
     SongPlayerClient songPlayerClient;
-    @Value("${song.stream.chunk-size}")
-    Long chunkSize;
+
     @Value("${aws.bucket}")
     String bucket;
-    @Value("${Song.Cache}")
-    private int songCacheSize;
     private Map<String, Song> songCacheTable;
     private static final List<String> SongContentType = List.of("audio/mpeg", "audio/ogg", "audio/opus");
-
-    @PostConstruct
-    public void initCache() {
-        this.songCacheTable = new CacheMap(this.songCacheSize);
-    }
 
     @PostMapping({"/upload"})
     public ResponseEntity<?> uploadSong(@RequestPart(value = "file",required = false) MultipartFile file, @RequestPart(value = "ytUrl",required = false) String ytUrl, @RequestPart("song") Song song, @RequestPart("mail") String mail) throws IOException, InterruptedException {
