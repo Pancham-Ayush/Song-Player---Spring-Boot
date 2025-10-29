@@ -3,6 +3,7 @@ package com.example.MIcroService_Player.Controller;
 import com.example.MIcroService_Player.Model.Song;
 import com.example.MIcroService_Player.Repo.SongRepo;
 import com.example.MIcroService_Player.Service.RedisService;
+import com.example.MIcroService_Player.Service.RetrievalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -25,67 +26,11 @@ import java.io.IOException;
 @RestController
 public class SongController {
     @Autowired
-    S3Client s3Client;
-    @Autowired
-    RedisService redisService;
-    @Autowired
-    SongRepo songRepo;
-    @Value("${song.stream.chunk-size}")
-    Long chunkSize;
-    @Value("${aws.bucket}")
-    String bucket;
+    RetrievalService retrievalService;;
 
     @GetMapping({"/get/{songid}"})
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException {
-        Song song = redisService.get(songid);
-        if (song != null) {
-            System.out.println("Getting song from cache: " + song.getName());
-        } else {
-            song = (Song)this.songRepo.findById(songid).orElseThrow();
-            redisService.set(songid, song);
-            System.out.println("Getting song from DB: " + song.getName());
-        }
 
-
-        String path = song.getPath();
-        long fileLength = song.getSize();
-        long start = 0L;
-        GetObjectRequest.Builder headRequest = GetObjectRequest.builder().bucket(this.bucket).key(path);
-        long end;
-        if (range != null) {
-            System.out.println(range);
-            String[] rangeStart = range.replace("bytes=", "").split("-");
-            start = Long.parseLong(rangeStart[0]);
-            end = Long.parseLong(rangeStart[0]) + this.chunkSize;
-            if (end > fileLength) {
-                end = fileLength - 1L;
-            }
-        } else {
-            end = this.chunkSize;
-        }
-
-
-        headRequest.range("bytes=" + start + "-" + end);
-        ResponseInputStream<GetObjectResponse> responseInputStream = this.s3Client.getObject((GetObjectRequest)headRequest.build());
-        GetObjectResponse response = (GetObjectResponse)responseInputStream.response();
-        System.out.println(" start - end  " + start + " " + end);
-
-
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
-            headers.add("Accept-Ranges", "bytes");
-            headers.setContentLength(end - start + 1L);
-            String mimeType = response.contentType();
-            System.out.println(mimeType + " type");
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-
-
-            return ((ResponseEntity.BodyBuilder)ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).headers(headers)).contentType(MediaType.parseMediaType(mimeType)).body(new InputStreamResource(responseInputStream));
-        } catch (Exception var16) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return retrievalService.getSong(songid, range);
     }
 }

@@ -36,8 +36,6 @@ public class SearchYT {
                 "video",
                 10,
                 search,
-                "moderate",
-                "viewCount",
                 apiKey,
                 pageToken
         );

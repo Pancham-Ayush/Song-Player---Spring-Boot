@@ -90,6 +90,11 @@
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>netty-nio-client</artifactId>
     </dependency>
+<!--    Spring Cloud-->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
 </dependencies>
 
 <build>

@@ -13,8 +13,6 @@ public interface YoutubeSearchClient {
             @RequestParam("type") String type,
             @RequestParam("maxResults") int maxResults,
             @RequestParam("q") String query,
-            @RequestParam("safeSearch") String safeSearch,
-            @RequestParam("order") String order,
             @RequestParam("key") String apiKey,
             @RequestParam(value = "pageToken", required = false) String pageToken
     );
