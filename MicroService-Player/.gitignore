@@ -31,3 +31,20 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+*.log
+logs/
+
+### OS files ###
+.DS_Store
+Thumbs.db
+
+### Temporary files ###
+*.tmp
+*.bak
+~*
+
+### Maven Wrapper ###
+mvnw
+mvnw.cmd

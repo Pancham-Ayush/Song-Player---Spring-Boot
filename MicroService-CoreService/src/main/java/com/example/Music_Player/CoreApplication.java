@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableAsync
-@EnableFeignClients(basePackages = "com.example.Music_Player.Controller.Feign")
+@EnableFeignClients
 @SpringBootApplication
 public class CoreApplication {
 
