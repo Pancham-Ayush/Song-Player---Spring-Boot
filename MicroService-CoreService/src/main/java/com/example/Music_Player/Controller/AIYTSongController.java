@@ -1,24 +1,31 @@
 
 package com.example.Music_Player.Controller;
 
+import com.example.Music_Player.DTO.SONG_YT_DTO;
 import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Model.YoutubeVideo;
 import com.example.Music_Player.Service.AiService;
+import com.example.Music_Player.Service.KafkaProducer;
 import com.example.Music_Player.Service.SearchYT;
 import com.example.Music_Player.Service.SongService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 public class AIYTSongController {
     @Autowired
@@ -27,7 +34,8 @@ public class AIYTSongController {
     AiService aiService;
     @Autowired
     SongService songService;
-
+    @Autowired
+    KafkaProducer kafkaProducer;
     @GetMapping({"SearchOnYt"})
     public ResponseEntity<?> searchOnYt(@RequestParam String query, @RequestParam(required = false) String token) {
         if (query.startsWith("https://www.youtube.com/watch?v=")) {
@@ -65,10 +73,9 @@ public class AIYTSongController {
         String ytDetail = youtubeVideo.toString();
         boolean check = this.aiService.AISongVerification(ytDetail);
         if (check) {
-            Map<Object, Object> map = this.aiService.AiSongMapping(ytDetail);
-            Song song = (Song)map.get("song");
-            String url = map.get("url").toString();
-            this.songService.uploadYoutubeAudioAsync(url, song);
+            SONG_YT_DTO obj = aiService.AiSongMapping(ytDetail);
+            log.info(obj.toString());
+            kafkaProducer.publishDownloadRequest(youtubeVideo);
             return ResponseEntity.ok("Under AI review for verification. Please check back in the Songs section within the next few min.");
         } else {
             return ResponseEntity.ok("Your song didn’t pass AI verification. Please check and upload again. ");

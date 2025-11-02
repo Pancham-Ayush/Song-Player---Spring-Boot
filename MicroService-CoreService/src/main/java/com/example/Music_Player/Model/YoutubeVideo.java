@@ -22,7 +22,6 @@ public class YoutubeVideo {
     private String channelName;
     private String description;
     public String toString() {
-        String var10000 = this.getTitle();
-        return "YoutubeVideo(title=" + var10000 + ", url=" + this.getUrl() + ", thumbnailUrl=" + this.getThumbnailUrl() + ", channelName=" + this.getChannelName() + ", description=" + this.getDescription() + ")";
+       return "YoutubeVideo(title=" + this.getTitle() + ", url=" + this.getUrl() + ", thumbnailUrl=" + this.getThumbnailUrl() + ", channelName=" + this.getChannelName() + ", description=" + this.getDescription() + ")";
     }
 }

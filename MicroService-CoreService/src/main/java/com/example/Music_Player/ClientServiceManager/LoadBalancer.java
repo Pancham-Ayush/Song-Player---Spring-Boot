@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class LoadBalancer {
+
+//    No Need Spring - Eureka will autoconfigure , needed when ribbon used(Deprecated)
     @Autowired
     LoadBalancerClient loadBalancerClient;
     

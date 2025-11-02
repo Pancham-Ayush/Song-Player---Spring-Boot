@@ -1,5 +1,4 @@
-
-package com.example.Music_Player.Service;
+package com.example.YT_S3_MicroService;
 
 import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Repository.SongRepo;
@@ -11,6 +10,7 @@ import java.nio.file.Files;
 import java.util.concurrent.CompletableFuture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
@@ -30,6 +30,7 @@ public class SongService {
     S3AsyncClient s3AsyncClient;
     @Autowired
     SongEmbeddingService songEmbeddingService;
+
 
     CompletableFuture<PutObjectResponse> UploadASYNC(String path, MultipartFile file) throws IOException {
         PutObjectRequest putObjectRequest = (PutObjectRequest)PutObjectRequest.builder().bucket(this.bucket).key(path).contentType(file.getContentType()).build();
@@ -114,19 +115,3 @@ public class SongService {
         pb.redirectErrorStream(true);
         return pb.start();
     }
-
-
-    public Song addSong(Song song, MultipartFile file) {
-        try {
-            long var10000 = System.currentTimeMillis();
-            String fileName = var10000 + "_" + file.getOriginalFilename();
-            song.setPath(fileName);
-            song.setSize(file.getSize());
-            this.UploadASYNC(fileName, file);
-            this.songEmbeddingService.addSongs(song);
-            return this.songRepo.saveSong(song);
-        } catch (Exception var4) {
-            return null;
-        }
-    }
-}
