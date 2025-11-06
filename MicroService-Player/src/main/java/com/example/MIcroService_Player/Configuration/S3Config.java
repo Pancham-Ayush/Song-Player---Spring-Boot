@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 
 @Configuration
 public class S3Config {
@@ -21,11 +22,15 @@ public class S3Config {
     @Bean
     public S3Client s3Client() {
 
+        S3Configuration s3Configuration = S3Configuration.builder()
+                .accelerateModeEnabled(true)
+                .build();
         AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         return S3Client
                 .builder()
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredentials))
+                .serviceConfiguration(s3Configuration)
                 .build();
     }
 
