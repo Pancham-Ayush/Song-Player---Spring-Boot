@@ -1,4 +1,4 @@
-package com.example.Music_Player.Config;
+package com.example.YT_S3_MicroService.Config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,8 +8,6 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3Configuration;
-import software.amazon.awssdk.services.s3.internal.crt.S3CrtAsyncClient;
 
 @Configuration
 public class S3Config {
@@ -19,31 +17,14 @@ public class S3Config {
     String accessKey;
     @Value("${cloud.aws.credentials.secret-key}")
     String secretKey;
-    @Value("${cloud.s3.accelerated:false}")
-    boolean accelerated;
 
     @Bean
-    public S3AsyncClient s3Client1() {
+    public S3AsyncClient s3Client() {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
 
-        return  S3AsyncClient.builder()
+        return S3AsyncClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .build();
-    }
-    @Bean
-    public S3Client s3Client() {
-
-        S3Configuration s3Configuration = S3Configuration.builder()
-                .accelerateModeEnabled(accelerated)
-                .build();
-
-        AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(accessKey, secretKey);
-        return S3Client
-                .builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredentials))
-                .serviceConfiguration(s3Configuration)
                 .build();
     }
 }

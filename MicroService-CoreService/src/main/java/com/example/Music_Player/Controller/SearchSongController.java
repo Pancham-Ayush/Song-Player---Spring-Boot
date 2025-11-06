@@ -3,7 +3,7 @@
 package com.example.Music_Player.Controller;
 
 import com.example.Music_Player.Model.Song;
-import com.example.Music_Player.Service.SongEmbeddingService;
+import com.example.Music_Player.AI.SongEmbeddingService;
 import io.pinecone.clients.Index;
 import io.pinecone.clients.Pinecone;
 import io.pinecone.configs.PineconeConfig;

@@ -1,7 +1,8 @@
 
 package com.example.Music_Player.Service;
 
-import com.example.Music_Player.Controller.Feign.YoutubeSearchClient;
+import com.example.Music_Player.AI.AIService;
+import com.example.Music_Player.Feign.YoutubeSearchClient;
 import com.example.Music_Player.Model.YoutubeVideo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,9 +13,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @Service
 public class SearchYT {
@@ -23,7 +22,7 @@ public class SearchYT {
     @Value("${youtube.api.key}")
     private String apiKey;
     @Autowired
-    private AiService aiService;
+    private AIService aiService;
     @Autowired
     private YoutubeSearchClient  youtubeSearchClient;
     public Map<String, Object> search(String search, String pageToken) {

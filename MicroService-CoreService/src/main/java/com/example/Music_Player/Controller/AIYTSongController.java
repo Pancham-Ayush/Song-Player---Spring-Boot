@@ -2,10 +2,9 @@
 package com.example.Music_Player.Controller;
 
 import com.example.Music_Player.DTO.SONG_YT_DTO;
-import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Model.YoutubeVideo;
-import com.example.Music_Player.Service.AiService;
-import com.example.Music_Player.Service.KafkaProducer;
+import com.example.Music_Player.AI.AIService;
+import com.example.Music_Player.Kafka.KafkaProducer;
 import com.example.Music_Player.Service.SearchYT;
 import com.example.Music_Player.Service.SongService;
 import java.util.ArrayList;
@@ -13,12 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,11 +30,13 @@ public class AIYTSongController {
     @Autowired
     SearchYT searchYT;
     @Autowired
-    AiService aiService;
+    AIService aiService;
     @Autowired
     SongService songService;
     @Autowired
     KafkaProducer kafkaProducer;
+    @Autowired
+    ObjectMapper objectMapper;
     @GetMapping({"SearchOnYt"})
     public ResponseEntity<?> searchOnYt(@RequestParam String query, @RequestParam(required = false) String token) {
         if (query.startsWith("https://www.youtube.com/watch?v=")) {
@@ -68,14 +69,16 @@ public class AIYTSongController {
         }
     }
 
+
     @PostMapping({"AiDownloading"})
-    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo) {
+    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo) throws JsonProcessingException {
         String ytDetail = youtubeVideo.toString();
         boolean check = this.aiService.AISongVerification(ytDetail);
         if (check) {
-            SONG_YT_DTO obj = aiService.AiSongMapping(ytDetail);
-            log.info(obj.toString());
-            kafkaProducer.publishDownloadRequest(youtubeVideo);
+            SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail);
+            log.info(dto_yt.toString());
+            String dto_json =objectMapper.writeValueAsString(dto_yt);
+            kafkaProducer.publishDownloadRequest(dto_json);
             return ResponseEntity.ok("Under AI review for verification. Please check back in the Songs section within the next few min.");
         } else {
             return ResponseEntity.ok("Your song didn’t pass AI verification. Please check and upload again. ");

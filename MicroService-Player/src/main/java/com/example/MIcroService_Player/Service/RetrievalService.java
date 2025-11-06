@@ -84,4 +84,3 @@ public class RetrievalService {
         return ResponseEntity.notFound().build();
     }
 }
-

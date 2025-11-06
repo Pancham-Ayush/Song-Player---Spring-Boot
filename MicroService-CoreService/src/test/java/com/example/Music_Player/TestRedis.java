@@ -1,7 +1,7 @@
 package com.example.Music_Player;
 
 import com.example.Music_Player.Model.User;
-import com.example.Music_Player.Service.RedisService;
+import com.example.Music_Player.Redis.RedisService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
