@@ -18,12 +18,15 @@ public class S3Config {
     String accessKey;
     @Value("${cloud.aws.credentials.secret-key}")
     String secretKey;
+    @Value("${s3.acceleration}")
+    boolean acceleration;
+//    boolean acceleration = s_acceleration.equalsIgnoreCase("true");
 
     @Bean
     public S3Client s3Client() {
 
         S3Configuration s3Configuration = S3Configuration.builder()
-                .accelerateModeEnabled(true)
+                .accelerateModeEnabled(acceleration)
                 .build();
         AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         return S3Client

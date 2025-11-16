@@ -23,7 +23,7 @@ public class ApiGatewayCorsConfig {
 
         cors.setAllowCredentials(true);
         cors.addAllowedHeader("*");
-        cors.addAllowedMethod("*"); // GET, POST, PUT, DELETE, OPTIONS
+        cors.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);

@@ -8,7 +8,6 @@ import com.example.Music_Player.Model.Song;
 import com.example.Music_Player.Repository.AdminRepo;
 import com.example.Music_Player.Repository.PlaylistRepo;
 import com.example.Music_Player.Repository.SongRepo;
-import com.example.Music_Player.Repository.UserRepo;
 import com.example.Music_Player.Redis.RedisService;
 import com.example.Music_Player.Service.SongService;
 
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 @RestController
@@ -42,8 +40,8 @@ public class SongController {
     SongService songService;
     @Autowired
     SongRepo songRepo;
-    @Autowired
-    private UserRepo userRepo;
+//    @Autowired
+//    private UserRepo userRepo;
     @Autowired
     private AdminRepo adminRepo;
     @Autowired
