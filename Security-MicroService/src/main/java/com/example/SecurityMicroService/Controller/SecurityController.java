@@ -51,15 +51,6 @@ public class SecurityController {
         return ResponseEntity.notFound().build();
     }
 
-    private boolean isMobile(HttpServletRequest request) {
-        String userAgent = request.getHeader("User-Agent");
-        if (userAgent == null) {
-            return false;
-        } else {
-            String ua = userAgent.toLowerCase();
-            return ua.contains("android") || ua.contains("iphone") || ua.contains("ipad") || ua.contains("mobile");
-        }
-    }
 
     @PostMapping("/manual-login")
     public ResponseEntity<?> manualLogin(@RequestBody Map<String, String> request, HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) {
@@ -83,24 +74,12 @@ public class SecurityController {
         cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
         httpServletResponse.addCookie(cookie);
         Map<String, Object> body = new HashMap<>();
-        boolean device = isMobile(httpServletRequest);
+        boolean device = authService.isMobile(httpServletRequest);
         body.put("message", "Login successful");
         body.put("email", email);
 
         return ResponseEntity.ok(Map.of("message", "Login successful", "username", username, "email", email, "mobile", device, "admin", admin_role));
 
-    }
-
-    @PostMapping("logout")
-    public ResponseEntity<?> logout(HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) {
-        httpServletRequest.getSession().invalidate();
-        Cookie cookie = new Cookie("jwt", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        httpServletResponse.addCookie(cookie);
-
-        return ResponseEntity.ok().build();
     }
 
 }

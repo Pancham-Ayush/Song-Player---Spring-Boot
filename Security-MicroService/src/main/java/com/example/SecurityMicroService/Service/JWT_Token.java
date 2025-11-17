@@ -1,5 +1,6 @@
 package com.example.SecurityMicroService.Service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -34,4 +35,16 @@ public class JWT_Token {
     }
 
 
+    public String getEmailFromToken(String token) {
+        Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // Get email from claims
+        return claims.get("email", String.class);
+    }
 }
