@@ -30,16 +30,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults()) // enable CORS
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        // allow preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // public endpoints
-                        .requestMatchers("/manual-login", "/error").permitAll()
-                        // all other endpoints require authentication
+                        .requestMatchers("/manual-login", "/error","/manual-create-user").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(Customizer.withDefaults()) // default login (optional)
                 .userDetailsService(customUserDetailsService);
 
         return http.build();

@@ -1,9 +1,13 @@
-package com.example.SecurityMicroService.SpringSecurity;
+package com.example.SecurityMicroService.Controller;
 
+import com.example.SecurityMicroService.Model.User;
+import com.example.SecurityMicroService.Service.AuthService;
 import com.example.SecurityMicroService.Service.JWT_Token;
+import com.example.SecurityMicroService.SpringSecurity.CoustomUserDetails;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 public class SecurityController {
 
@@ -30,16 +35,22 @@ public class SecurityController {
     @Autowired
     JWT_Token jwtToken;
 
-    //    @PostMapping("/create-user")
-//    public ResponseEntity<String> createUser(@RequestBody User user) {
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
-//        user.setRole("USER");
-//        User create_user = authService.CreateUser(user);
-//        if (create_user != null) {
-//            return ResponseEntity.ok("Created Successfully");
-//        }
-//        return ResponseEntity.notFound().build();
-//    }
+    @Autowired
+    AuthService authService;
+
+
+    @PostMapping("/manual-create-user")
+    public ResponseEntity<String> createUser(@RequestBody User user) {
+        log.info("Creating user {}", user);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole("USER");
+        User create_user = authService.createUser(user);
+        if (create_user != null) {
+            return ResponseEntity.ok("Created Successfully");
+        }
+        return ResponseEntity.notFound().build();
+    }
+
     private boolean isMobile(HttpServletRequest request) {
         String userAgent = request.getHeader("User-Agent");
         if (userAgent == null) {
@@ -80,5 +91,16 @@ public class SecurityController {
 
     }
 
+    @PostMapping("logout")
+    public ResponseEntity<?> logout(HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) {
+        httpServletRequest.getSession().invalidate();
+        Cookie cookie = new Cookie("jwt", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        httpServletResponse.addCookie(cookie);
+
+        return ResponseEntity.ok().build();
+    }
 
 }
