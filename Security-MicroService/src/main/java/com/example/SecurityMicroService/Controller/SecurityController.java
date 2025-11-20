@@ -42,7 +42,6 @@ public class SecurityController {
     @PostMapping("/manual-create-user")
     public ResponseEntity<String> createUser(@RequestBody User user) {
         log.info("Creating user {}", user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole("USER");
         User create_user = authService.createUser(user);
         if (create_user != null) {
@@ -63,11 +62,12 @@ public class SecurityController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
-        String token = jwtToken.getSecretToken(email);
-        Map<String, Object> response = new HashMap<>();
         CoustomUserDetails userDetails = (CoustomUserDetails) authentication.getPrincipal();
         String username = userDetails.getUsername();
-        boolean admin_role = userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ADMIN"));
+        String role = userDetails.getAuthorities().iterator().next().getAuthority();
+        String token = jwtToken.getSecretToken(email, role);
+
+        boolean admin_role =role.equals("ADMIN");
         Cookie cookie = new Cookie("jwt", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");

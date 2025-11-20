@@ -3,7 +3,7 @@ package com.example.Music_Player.Model;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+@Deprecated
 public class CacheMap<K, V> extends LinkedHashMap<K, V> {
     int capacity;
 

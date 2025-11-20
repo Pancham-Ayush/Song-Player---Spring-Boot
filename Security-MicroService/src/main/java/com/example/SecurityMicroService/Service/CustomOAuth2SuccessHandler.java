@@ -42,10 +42,11 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             user = new User();
             user.setEmail(email);
             user.setName(name);
+            user.setRole("USER");
             user.setPassword(UUID.randomUUID().toString());
             authService.createUser(user);
         }
-        String token = jwtToken.getSecretToken(email);
+        String token = jwtToken.getSecretToken(email,user.getRole());
         Cookie cookie = new Cookie("jwt", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");

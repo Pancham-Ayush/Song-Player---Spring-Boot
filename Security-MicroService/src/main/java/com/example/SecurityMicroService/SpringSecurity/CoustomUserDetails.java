@@ -19,7 +19,7 @@ public class CoustomUserDetails implements UserDetails {
         String role = user.getRole();
 
         if (role == null || role.isBlank()) {
-            role = "ROLE_USER";
+            role = "USER";
         }
         return Collections.singleton(new SimpleGrantedAuthority(role));
     }

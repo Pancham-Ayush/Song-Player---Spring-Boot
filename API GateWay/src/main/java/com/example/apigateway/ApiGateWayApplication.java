@@ -2,6 +2,7 @@ package com.example.apigateway;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -18,10 +19,19 @@ public class ApiGateWayApplication {
 		SpringApplication.run(ApiGateWayApplication.class, args);
 	}
 
+    @Autowired
+    protected AdminCheckFilter adminCheckFilter;
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtCookieFilter jwtFilter) {
         log.info("Custom Route Locator"+ builder.routes());
         return builder.routes()
+                .route("core-service-admin-route", r -> r
+                        .path("/core/upload/**")
+                        .filters(f -> f
+                                .stripPrefix(1)
+                                .filter(adminCheckFilter)
+                        )
+                        .uri("lb://CORE-SERVICE"))
                 .route("core-service-route", r -> r
                         .path("/core/**")
                         .filters(f -> f.stripPrefix(1).filter(jwtFilter))
