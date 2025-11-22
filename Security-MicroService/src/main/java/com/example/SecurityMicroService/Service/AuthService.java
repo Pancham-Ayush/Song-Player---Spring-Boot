@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class AuthService {
     @Autowired
@@ -31,12 +33,12 @@ public class AuthService {
             return null;
 
     }
-    public String getEmailFromJwt(HttpServletRequest request) {
+    public Map<String, String> getEmail_RoleFromCookie(HttpServletRequest request) {
         if(request.getCookies() != null) {
             for(Cookie cookie : request.getCookies()) {
                 if(cookie.getName().equals("jwt")) {
                     String token = cookie.getValue();
-                    return jwtToken.getEmailFromToken(token); // your JWT_Token method to extract email
+                    return jwtToken.getEmail_RoleFromToken(token); // your JWT_Token method to extract email ,role
                 }
             }
         }

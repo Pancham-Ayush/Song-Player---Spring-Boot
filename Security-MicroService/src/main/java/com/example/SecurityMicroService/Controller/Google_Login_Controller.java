@@ -39,13 +39,15 @@ public class Google_Login_Controller {
         response.sendRedirect("/oauth2/authorization/google");
     }
     @GetMapping("/google/me")
-    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
-        String email = authService.getEmailFromJwt(request);
+    public ResponseEntity<Map> getCurrentUser(HttpServletRequest request) {
+        Map<String,String> userInfo= authService.getEmail_RoleFromCookie(request);
+        String role = userInfo.get("role");
+        String email = userInfo.get("email");
         User user = userRepo.findByEmail(email);
         Map<String,Object> response = Map.of(
                 "username", user.getName(),
                 "email", user.getEmail(),
-                "admin", user.getRole().equalsIgnoreCase("ADMIN")
+                "admin", role.equalsIgnoreCase("ADMIN")
         );
         return ResponseEntity.ok(response);
     }
