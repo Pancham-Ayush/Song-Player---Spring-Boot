@@ -23,7 +23,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final UserRepo userRepo;
     private final AuthService authService;
 
-    public CustomOAuth2SuccessHandler(JWT_Token jwtToken, UserRepo userRepo,@Lazy AuthService authService) {
+    public CustomOAuth2SuccessHandler(JWT_Token jwtToken, UserRepo userRepo, AuthService authService) {
         this.jwtToken = jwtToken;
         this.userRepo = userRepo;
         this.authService = authService;

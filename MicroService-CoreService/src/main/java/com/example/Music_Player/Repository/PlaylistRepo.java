@@ -2,6 +2,7 @@
 package com.example.Music_Player.Repository;
 
 import com.example.Music_Player.Model.Playlist;
+import com.example.Music_Player.Model.Song;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Objects;
@@ -42,12 +43,21 @@ public class PlaylistRepo {
         return this.playlistTable.index("PublicPlaylistIndex").query((q) -> q.queryConditional(QueryConditional.keyEqualTo((k) -> k.partitionValue(publicplaylist)))).stream().flatMap((page) -> page.items().stream()).toList();
     }
 
-    public void delete(String id) {
-        List<Playlist> playlists = (List)this.playlistTable.scan().items().stream().collect(Collectors.toList());
-        List<Playlist> modifiedPlaylists = (List)playlists.stream().filter((playlist) -> playlist.getSongs().removeIf((song) -> song.getId().equals(id))).collect(Collectors.toList());
-        DynamoDbTable var10001 = this.playlistTable;
-        Objects.requireNonNull(var10001);
-        modifiedPlaylists.forEach(var10001::updateItem);
+    public void deleteFromPlaylist(String id) {
+        List<Playlist> playlists = playlistTable.scan()
+                .items()
+                .stream()
+                .collect(Collectors.toList());
+
+        List<Playlist> modifiedPlaylists = playlists.stream()
+                .filter(playlist -> {
+                    List<Song> songs = playlist.getSongs();
+                    if (songs == null) return false;
+                    return songs.removeIf(song -> song.getId().equals(id));
+                })
+                .collect(Collectors.toList());
+
+        modifiedPlaylists.forEach(playlistTable::updateItem);
     }
 
     public List<Playlist> findAll() {
