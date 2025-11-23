@@ -22,11 +22,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class PlayListController {
-    @Autowired
-    private PlaylistRepo playlistRepo;
 
-    @Autowired
-    private SongRepo songRepo;
+    private final PlaylistRepo playlistRepo;
+
+    private final SongRepo songRepo;
+
+    public PlayListController(PlaylistRepo playlistRepo, SongRepo songRepo) {
+        this.playlistRepo = playlistRepo;
+        this.songRepo = songRepo;
+    }
 
     @PostMapping({"/createplaylist"})
     public ResponseEntity<?> createPlaylist(@RequestBody Map<String, Object> request) {
@@ -39,8 +43,6 @@ public class PlayListController {
 
         if (email != null && !email.isBlank()) {
             if (playlistName != null && !playlistName.isBlank()) {
-
-
                 Playlist playlist = new Playlist();
                 playlist.setName(playlistName);
                 playlist.setUserEmail(email);

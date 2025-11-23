@@ -3,6 +3,7 @@ package com.example.Music_Player.AI;
 
 import com.example.Music_Player.DTO.SONG_YT_DTO;
 
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,9 +11,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AIService {
-    @Autowired
-    @Qualifier("myMistralChatModel")
-    ChatClient MistralAiChatModel;
+
+    private final ChatClient MistralAiChatModel;
+
+    public AIService(@Qualifier("myMistralChatModel")ChatClient MistralAiChatModel) {
+        this.MistralAiChatModel = MistralAiChatModel;
+    }
 
     public boolean AISongVerification(String message) {
         res r = (res)this.MistralAiChatModel

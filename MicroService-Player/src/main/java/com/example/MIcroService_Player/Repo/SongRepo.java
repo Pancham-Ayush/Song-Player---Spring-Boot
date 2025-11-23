@@ -20,8 +20,7 @@ import java.util.stream.Collectors;
 @Repository
 public class SongRepo {
 
-    @Autowired
-    DynamoDbEnhancedClient client;
+    private final DynamoDbEnhancedClient client;
 
     DynamoDbTable<Song> table;
 

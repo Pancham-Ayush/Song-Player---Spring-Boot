@@ -27,16 +27,24 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 public class AIYTSongController {
-    @Autowired
-    SearchYT searchYT;
-    @Autowired
-    AIService aiService;
-    @Autowired
-    SongService songService;
-    @Autowired
-    KafkaProducer kafkaProducer;
-    @Autowired
-    ObjectMapper objectMapper;
+    private final SearchYT searchYT;
+
+    private final AIService aiService;
+
+    private final SongService songService;
+
+    private final KafkaProducer kafkaProducer;
+
+    private final ObjectMapper objectMapper;
+
+    public AIYTSongController(SearchYT searchYT, AIService aiService, SongService songService, KafkaProducer kafkaProducer, ObjectMapper objectMapper) {
+        this.searchYT = searchYT;
+        this.aiService = aiService;
+        this.songService = songService;
+        this.kafkaProducer = kafkaProducer;
+        this.objectMapper = objectMapper;
+
+    }
     @GetMapping({"SearchOnYt"})
     public ResponseEntity<?> searchOnYt(@RequestParam String query, @RequestParam(required = false) String token) {
         if (query.startsWith("https://www.youtube.com/watch?v=")) {

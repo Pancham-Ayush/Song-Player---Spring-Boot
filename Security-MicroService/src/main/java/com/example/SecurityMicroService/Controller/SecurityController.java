@@ -26,18 +26,17 @@ import java.util.Map;
 @RestController
 public class SecurityController {
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    AuthenticationManager authenticationManager;
+    private final JWT_Token jwtToken;
 
-    @Autowired
-    JWT_Token jwtToken;
+    private final AuthService authService;
 
-    @Autowired
-    AuthService authService;
-
+    public SecurityController(AuthenticationManager authenticationManager, JWT_Token jwtToken,AuthService authService) {
+        this.authenticationManager = authenticationManager;
+        this.jwtToken = jwtToken;
+        this.authService = authService;
+    }
 
     @PostMapping("/manual-create-user")
     public ResponseEntity<String> createUser(@RequestBody User user) {

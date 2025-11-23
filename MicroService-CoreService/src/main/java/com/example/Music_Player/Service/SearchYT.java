@@ -21,10 +21,15 @@ public class SearchYT {
     private String SEARCH_URL;
     @Value("${youtube.api.key}")
     private String apiKey;
-    @Autowired
-    private AIService aiService;
-    @Autowired
-    private YoutubeSearchClient  youtubeSearchClient;
+
+    private final AIService aiService;
+
+    private final YoutubeSearchClient  youtubeSearchClient;
+
+    public SearchYT(AIService aiService, YoutubeSearchClient youtubeSearchClient) {
+        this.aiService = aiService;
+        this.youtubeSearchClient = youtubeSearchClient;
+    }
     public Map<String, Object> search(String search, String pageToken) {
         String url = this.SEARCH_URL;
         if (pageToken == null || pageToken.isEmpty()) {

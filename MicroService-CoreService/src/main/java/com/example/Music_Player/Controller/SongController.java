@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,21 +32,30 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 @RestController
 public class SongController {
-    @Autowired
-    SongService songService;
-    @Autowired
-    SongRepo songRepo;
-    @Autowired
-    private PlaylistRepo playlistRepo;
-    @Autowired
-    S3Client s3Client;
-    @Autowired
-    @Qualifier("vector")
-    VectorStore vectorStore;
-    @Autowired
-    RedisService redisService;
-    @Autowired
-    SongPlayerClient songPlayerClient;
+
+    private final SongService songService;
+
+    private final SongRepo songRepo;
+
+    private final PlaylistRepo playlistRepo;
+
+    private final S3Client s3Client;
+
+    private final VectorStore vectorStore;
+
+    private final RedisService redisService;
+
+    private final SongPlayerClient songPlayerClient;
+
+    public SongController(SongPlayerClient songPlayerClient, SongRepo songRepo, PlaylistRepo playlistRepo, S3Client s3Client,SongService songService, ObjectMapper objectMapper ,RedisService redisService, @Qualifier("vector")VectorStore vectorStore) {
+        this.songPlayerClient = songPlayerClient;
+        this.songRepo = songRepo;
+        this.playlistRepo = playlistRepo;
+        this.s3Client = s3Client;
+        this.songService = songService;
+        this.redisService = redisService;
+        this.vectorStore = vectorStore;
+    }
 
     @Value("${aws.bucket}")
     String bucket;
@@ -100,12 +110,6 @@ public ResponseEntity<?> deleteSong(@RequestBody Map<String, String> map) {
         this.songRepo.deleteSong(song.getId());
         this.playlistRepo.deleteFromPlaylist(song.getId());
         this.s3Client.deleteObject((DeleteObjectRequest)DeleteObjectRequest.builder().bucket(this.bucket).key(key).build());
-
-        try {
-            this.vectorStore.delete(List.of(song.getId()));
-        } catch (Exception var5) {
-        }
-
         return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
     }
 }

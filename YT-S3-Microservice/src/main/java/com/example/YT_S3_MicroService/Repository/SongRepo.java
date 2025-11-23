@@ -11,7 +11,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 @Repository
 public class SongRepo {
 
-    final DynamoDbEnhancedClient client;
+    private final DynamoDbEnhancedClient client;
 
     DynamoDbTable<Song> table;
 

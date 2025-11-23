@@ -20,16 +20,23 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
-public class yt_dlp_Service {
+public class YT_DLP_Service {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
-    @Autowired
-    public SongRepo songRepo;
+
     @Value("${aws.bucket}")
     String bucket;
-    @Autowired
-    S3AsyncClient s3AsyncClient;
+
+    private final SongRepo songRepo;
+
+
+    private final S3AsyncClient s3AsyncClient;
+
+    public YT_DLP_Service(SongRepo songRepo,  S3AsyncClient s3AsyncClient) {
+        this.songRepo = songRepo;
+        this.s3AsyncClient = s3AsyncClient;
+    }
 
     public CompletableFuture<Void> uploadYoutubeAudioAsync(String videoUrl, Song song) {
         return CompletableFuture.runAsync(() -> {

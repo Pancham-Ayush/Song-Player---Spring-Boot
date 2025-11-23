@@ -28,8 +28,12 @@ import org.springframework.core.io.Resource;
 
 @RestController
 public class SongController {
-    @Autowired
-    RetrievalService retrievalService;;
+
+    private final RetrievalService retrievalService;
+
+    public SongController(RetrievalService retrievalService) {
+        this.retrievalService = retrievalService;
+    }
 
     @GetMapping({"/get/{songid}"})
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException {

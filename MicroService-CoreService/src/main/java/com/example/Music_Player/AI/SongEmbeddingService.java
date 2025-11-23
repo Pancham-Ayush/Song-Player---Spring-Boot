@@ -15,9 +15,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SongEmbeddingService {
-    @Autowired
-    @Qualifier("vector")
-    VectorStore vectorStore;
+
+    private VectorStore vectorStore;
+
+    public SongEmbeddingService(@Qualifier("vector") VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+    }
 
     @Async
     public void addSongs(Song song) {

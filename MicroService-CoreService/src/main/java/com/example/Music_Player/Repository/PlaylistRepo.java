@@ -17,10 +17,13 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
 @Repository
 public class PlaylistRepo {
-    @Autowired
-    private DynamoDbEnhancedClient client;
+
+    private final DynamoDbEnhancedClient client;
     private DynamoDbTable<Playlist> playlistTable;
 
+    public  PlaylistRepo(DynamoDbEnhancedClient client) {
+        this.client = client;
+    }
     @PostConstruct
     void init() {
         this.playlistTable = this.client.table("Playlist", TableSchema.fromBean(Playlist.class));

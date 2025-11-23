@@ -12,12 +12,16 @@ import java.util.Map;
 
 @Service
 public class AuthService {
-    @Autowired
-    UserRepo userRepo;
-    @Autowired
-    PasswordEncoder passwordEncoder;
-    @Autowired
-    JWT_Token jwtToken;
+    private final UserRepo userRepo;
+
+    private final PasswordEncoder passwordEncoder;
+
+    private final JWT_Token jwtToken;
+    public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JWT_Token jwtToken) {
+        this.userRepo = userRepo;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtToken = jwtToken;
+    }
     public User createUser(User user){
         String email = user.getEmail();
         String password = user.getPassword();

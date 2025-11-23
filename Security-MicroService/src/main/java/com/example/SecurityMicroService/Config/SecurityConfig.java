@@ -27,9 +27,11 @@ import java.io.IOException;
 @Configuration
 public class SecurityConfig {
 
-    @Autowired
-    CoustomUserDetailsService customUserDetailsService;
+    private final CoustomUserDetailsService customUserDetailsService;
 
+    public SecurityConfig(CoustomUserDetailsService customUserDetailsService) {
+        this.customUserDetailsService = customUserDetailsService;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

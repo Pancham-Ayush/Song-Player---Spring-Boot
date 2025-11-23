@@ -23,14 +23,19 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 public class SongService {
     @Value("${file.upload-dir}")
     private String uploadDir;
-    @Autowired
-    public SongRepo songRepo;
     @Value("${aws.bucket}")
     String bucket;
-    @Autowired
-    S3AsyncClient s3AsyncClient;
-    @Autowired
-    SongEmbeddingService songEmbeddingService;
+
+    private final SongRepo songRepo;
+
+    private final S3AsyncClient s3AsyncClient;
+    private final SongEmbeddingService songEmbeddingService;
+
+    public SongService(SongRepo songRepo, S3AsyncClient s3AsyncClient,SongEmbeddingService songEmbeddingService) {
+        this.songRepo = songRepo;
+        this.s3AsyncClient = s3AsyncClient;
+        this.songEmbeddingService = songEmbeddingService;
+    }
 
     CompletableFuture<PutObjectResponse> UploadASYNC(String path, MultipartFile file) throws IOException {
         PutObjectRequest putObjectRequest = (PutObjectRequest)PutObjectRequest.builder().bucket(this.bucket).key(path).contentType(file.getContentType()).build();
