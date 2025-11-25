@@ -3,56 +3,76 @@ package com.example.apigateway;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 @Component
 public class AdminCheckFilter implements GatewayFilter {
     @Value("${JWT.secret.key}")
     String secretKey;
-    @Override
 
+
+    @Qualifier("Virtual")
+    @Autowired
+    Executor virtualThreadConfig;
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String token = null;
 
-        if (exchange.getRequest().getCookies().containsKey("jwt")) {
-            token = exchange.getRequest().getCookies().getFirst("jwt").getValue();
+        return Mono.fromFuture(
+                        CompletableFuture.runAsync(() -> {
+                            validateToken(exchange);
+                        }, virtualThreadConfig)
+                )
+                .then(chain.filter(exchange));
+
         }
 
-        if (token == null) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
-        }
-
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-            if (claims.getExpiration().before(new Date())) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+        void validateToken(ServerWebExchange exchange) {
+            String token = null;
+            System.out.println("---------------"+Thread.currentThread()+"____________________");
+            if (exchange.getRequest().getCookies().containsKey("jwt")) {
+                token = exchange.getRequest().getCookies().getFirst("jwt").getValue();
             }
 
-            if (!claims.get("role").equals("ADMIN")) {
+            if (token == null) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+                exchange.getResponse().setComplete().block();
+                 return;
             }
-        } catch (Exception e) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
-        }
 
-        // Token is valid, forward request
-        return chain.filter(exchange);
+            try {
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+
+                if (claims.getExpiration().before(new Date())) {
+                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                    exchange.getResponse().setComplete().block();
+                    return;
+                }
+
+                if (!claims.get("role").equals("ADMIN")) {
+                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                    exchange.getResponse().setComplete().block();
+                }
+            } catch (Exception e) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                exchange.getResponse().setComplete().block();
+            }
         }
 }
