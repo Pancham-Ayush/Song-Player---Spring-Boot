@@ -24,6 +24,11 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
 import org.springframework.core.io.Resource;
 
 @RestController
@@ -31,13 +36,19 @@ public class SongController {
 
     private final RetrievalService retrievalService;
 
-    public SongController(RetrievalService retrievalService) {
+    private final Executor virtualThreadExecutor;
+
+
+    public SongController(RetrievalService retrievalService, Executor VirtualThreadExecutor) {
         this.retrievalService = retrievalService;
+        this.virtualThreadExecutor = VirtualThreadExecutor;
     }
 
     @GetMapping({"/get/{songid}"})
-    public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException {
+    public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException, ExecutionException, InterruptedException {
+        Future<ResponseEntity<Resource>> future = ((ExecutorService) virtualThreadExecutor)
+                .submit(() -> retrievalService.getSong(songid, range));
 
-        return retrievalService.getSong(songid, range);
+        return future.get();
     }
 }

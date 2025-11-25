@@ -39,6 +39,7 @@ public class RetrievalService {
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range", required = false) String range) throws IOException {
         Long cur = System.currentTimeMillis();
         Song song = redisService.get(songid);
+        System.out.println("---------------"+Thread.currentThread()+"----------------");
         if (song != null) {
             log.info("From Redis Cache");
         } else {
