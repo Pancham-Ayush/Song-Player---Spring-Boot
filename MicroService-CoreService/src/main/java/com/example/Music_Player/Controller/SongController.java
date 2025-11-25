@@ -10,6 +10,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -47,7 +51,9 @@ public class SongController {
 
     private final SongPlayerClient songPlayerClient;
 
-    public SongController(SongPlayerClient songPlayerClient, SongRepo songRepo, PlaylistRepo playlistRepo, S3Client s3Client,SongService songService, ObjectMapper objectMapper ,RedisService redisService, @Qualifier("vector")VectorStore vectorStore) {
+    private final Executor virtualThreadExecutor;
+
+    public SongController(SongPlayerClient songPlayerClient, SongRepo songRepo, PlaylistRepo playlistRepo, S3Client s3Client,SongService songService, ObjectMapper objectMapper ,RedisService redisService, @Qualifier("vector")VectorStore vectorStore , Executor virtualThreadExecutor) {
         this.songPlayerClient = songPlayerClient;
         this.songRepo = songRepo;
         this.playlistRepo = playlistRepo;
@@ -55,6 +61,7 @@ public class SongController {
         this.songService = songService;
         this.redisService = redisService;
         this.vectorStore = vectorStore;
+        this.virtualThreadExecutor = virtualThreadExecutor;
     }
 
     @Value("${aws.bucket}")
@@ -63,55 +70,68 @@ public class SongController {
     private static final List<String> SongContentType = List.of("audio/mpeg", "audio/ogg", "audio/opus");
 
     @PostMapping({"/upload"})
-    public ResponseEntity<?> uploadSong(@RequestPart(value = "file",required = false) MultipartFile file, @RequestPart(value = "ytUrl",required = false) String ytUrl, @RequestPart("song") Song song, @RequestPart("mail") String mail) throws IOException, InterruptedException {
-        if (file != null && !SongContentType.contains(file.getContentType().toLowerCase())) {
-            return ResponseEntity.badRequest().body("Only MP3 / OGG files are allowed!");
-        } else {
-            System.out.println(ytUrl);
+    public ResponseEntity<Object> uploadSong(@RequestPart(value = "file",required = false) MultipartFile file, @RequestPart(value = "ytUrl",required = false) String ytUrl, @RequestPart("song") Song song, @RequestPart("mail") String mail) throws IOException, InterruptedException, ExecutionException {
+        Future<Object> future =((ExecutorService) virtualThreadExecutor)
+                .submit(() -> {
+                    if (file != null && !SongContentType.contains(file.getContentType().toLowerCase())) {
+                        return ResponseEntity.badRequest().body("Only MP3 / OGG files are allowed!");
+                    } else {
+                        System.out.println(ytUrl);
 
-            if (file != null) {
-                this.songService.addSong(song, file);
-                Map<String, String> response = new HashMap();
-                response.put("message", "Song saved successfully!");
-                return ResponseEntity.ok(response);
-            } else {
-                this.songService.uploadYoutubeAudioAsync(ytUrl, song);
-                Map<String, String> response = new HashMap();
-                response.put("message", "Song saved successfully!");
-                return ResponseEntity.ok(response);
-            }
-        }
+                        if (file != null) {
+                            this.songService.addSong(song, file);
+                            Map<String, String> response = new HashMap();
+                            response.put("message", "Song saved successfully!");
+                            return ResponseEntity.ok(response);
+                        } else {
+                            this.songService.uploadYoutubeAudioAsync(ytUrl, song);
+                            Map<String, String> response = new HashMap();
+                            response.put("message", "Song saved successfully!");
+                            return ResponseEntity.ok(response);
+                        }
+                    }
+                });
+        return (ResponseEntity<Object>) future.get();
     }
 
 @GetMapping({"/get/{songid}"})
-public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException {
-    return songPlayerClient.getSong(songid,range);
+public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range",required = false) String range) throws IOException, ExecutionException, InterruptedException {
+    Future<ResponseEntity<Resource>> future = ((ExecutorService) virtualThreadExecutor)
+            .submit(()-> songPlayerClient.getSong(songid,range));
+    return future.get();
 }
 
 @GetMapping({"/allsongs"})
-public ResponseEntity<Map<String, Object>> getAllSongs(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int chunk) {
-    Map<String, Object> response = this.songRepo.findAll(page, chunk);
-    return ResponseEntity.ok(response);
+public ResponseEntity<Map<String, Object>> getAllSongs(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int chunk) throws ExecutionException, InterruptedException {
+     Future<ResponseEntity<Map<String, Object>>> future = ((ExecutorService) virtualThreadExecutor)
+             .submit(() -> ResponseEntity.ok(songRepo.findAll(page, chunk)));
+             return future.get();
 }
 
 @GetMapping({"/allsongs/delete"})
-public ResponseEntity<?> getAllSongsForDelete() {
-    List<Song> songs = this.songRepo.findAll();
-    return ResponseEntity.ok(Map.of("songs", songs));
+public ResponseEntity<Map<String,List<Song>>> getAllSongsForDelete() throws ExecutionException, InterruptedException {
+        Future<ResponseEntity<Map<String,List<Song>>>> future = ((ExecutorService)virtualThreadExecutor)
+                .submit(() -> ResponseEntity.ok(Map.of("song",songRepo.findAll())));
+        return future.get();
 }
 
 @PostMapping({"/delete"})
-public ResponseEntity<?> deleteSong(@RequestBody Map<String, String> map) {
-    Song song = (Song)this.songRepo.findById((String)map.get("id")).orElse(null);
-    if (song == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
-    } else {
-        String key = song.getPath();
-        this.songRepo.deleteSong(song.getId());
-        this.playlistRepo.deleteFromPlaylist(song.getId());
-        this.s3Client.deleteObject((DeleteObjectRequest)DeleteObjectRequest.builder().bucket(this.bucket).key(key).build());
-        return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
-    }
+public ResponseEntity<Map<String,String>> deleteSong(@RequestBody Map<String, String> map) throws ExecutionException, InterruptedException {
+        Future<ResponseEntity<Map<String,String>>> future =
+                ((ExecutorService) virtualThreadExecutor)
+                        .submit( () -> {
+                            Song song = (Song) this.songRepo.findById((String) map.get("id")).orElse(null);
+                            if (song == null) {
+                                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
+                            } else {
+                                String key = song.getPath();
+                                this.songRepo.deleteSong(song.getId());
+                                this.playlistRepo.deleteFromPlaylist(song.getId());
+                                this.s3Client.deleteObject((DeleteObjectRequest) DeleteObjectRequest.builder().bucket(this.bucket).key(key).build());
+                                return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
+                            }
+                        });
+        return future.get();
 }
 
 @GetMapping({"/autoplay"})

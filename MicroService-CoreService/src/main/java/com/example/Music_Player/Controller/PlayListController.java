@@ -10,8 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.openfeign.support.FeignUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,52 +33,68 @@ public class PlayListController {
 
     private final SongRepo songRepo;
 
-    public PlayListController(PlaylistRepo playlistRepo, SongRepo songRepo) {
+    private final Executor virtualThreadExecutor;
+
+    public PlayListController(PlaylistRepo playlistRepo, SongRepo songRepo,  Executor VirtualThreadExecutor) {
         this.playlistRepo = playlistRepo;
         this.songRepo = songRepo;
+        this.virtualThreadExecutor = VirtualThreadExecutor;
     }
 
     @PostMapping({"/createplaylist"})
-    public ResponseEntity<?> createPlaylist(@RequestBody Map<String, Object> request) {
-        String playlistName = (String) request.get("name");
-        String email = (String) request.get("email");
-        Boolean publicPlaylistFlag = Boolean.FALSE;
-        if (request.get("public_playlist") != null) {
-            publicPlaylistFlag = (Boolean) request.get("public_playlist");
-        }
+    public ResponseEntity<?> createPlaylist(@RequestBody Map<String, Object> request) throws ExecutionException, InterruptedException {
+        Future<ResponseEntity<Map<String,String>>> future = ((ExecutorService) virtualThreadExecutor)
+                .submit(
+                    ()-> {
+                        String playlistName = (String) request.get("name");
+                        String email = (String) request.get("email");
+                        Boolean publicPlaylistFlag = Boolean.FALSE;
+                        if (request.get("public_playlist") != null)
+                            publicPlaylistFlag = (Boolean) request.get("public_playlist");
 
-        if (email != null && !email.isBlank()) {
-            if (playlistName != null && !playlistName.isBlank()) {
-                Playlist playlist = new Playlist();
-                playlist.setName(playlistName);
-                playlist.setUserEmail(email);
-                playlist.setPublicplaylist(publicPlaylistFlag.toString());
-                this.playlistRepo.save(playlist);
-                return ResponseEntity.ok(Map.of("message", "Playlist created successfully"));
+                        if (email != null && !email.isBlank()) {
+                            if (playlistName != null && !playlistName.isBlank()) {
+                                Playlist playlist = new Playlist();
+                                playlist.setName(playlistName);
+                                playlist.setUserEmail(email);
+                                playlist.setPublicplaylist(publicPlaylistFlag.toString());
+                                this.playlistRepo.save(playlist);
+                                return ResponseEntity.ok(Map.of("message", "Playlist created successfully"));
 
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Playlist name cannot be empty"));
-            }
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "User not logged in or email is empty"));
-        }
+                            } else {
+                                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Playlist name cannot be empty"));
+                            }
+                        } else {
+                            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "User not logged in or email is empty"));
+                        }
+                    });
+        return future.get();
     }
 
+    @SneakyThrows
     @PostMapping({"/getplaylist"})
-    public ResponseEntity<?> getPlaylist(@RequestBody Map<String, String> request) {
-        String email = (String) request.get("email");
-        List<Playlist> playlists = this.playlistRepo.findPlaylistsByUserEmail(email);
-        return ResponseEntity.ok(Map.of("playlists", playlists));
+    public ResponseEntity<Map<String, List<Playlist>>> getPlaylist(@RequestBody Map<String, String> request) {
+        Future<ResponseEntity<Map<String,List<Playlist>>>> future = ((ExecutorService) virtualThreadExecutor)
+                .submit(()-> {
+                    String email = (String) request.get("email");
+                    List<Playlist> playlists = this.playlistRepo.findPlaylistsByUserEmail(email);
+                    return ResponseEntity.ok(Map.of("playlists", playlists));
+                });
+        return future.get();
     }
     @GetMapping({"/playlistsongs"})
-    public ResponseEntity<?> getPlaylistSongs(@RequestParam("playlistid") String playlistId) {
-        Optional<Playlist> playlistOpt = this.playlistRepo.findById(playlistId);
-        if (playlistOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Playlist not found"));
-        } else {
-            List<Song> songs = ((Playlist) playlistOpt.get()).getSongs();
-            return ResponseEntity.ok(Map.of("songs", songs));
-        }
+    public ResponseEntity<Map<String,Object>> getPlaylistSongs(@RequestParam("playlistid") String playlistId) throws ExecutionException, InterruptedException {
+        Future<ResponseEntity<Map<String,Object>>> future = ((ExecutorService) virtualThreadExecutor)
+                .submit(()-> {
+                    Optional<Playlist> playlistOpt = this.playlistRepo.findById(playlistId);
+                    if (playlistOpt.isEmpty()) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Playlist not found"));
+                    } else {
+                        List<Song> songs = ((Playlist) playlistOpt.get()).getSongs();
+                        return ResponseEntity.ok(Map.of("songs", songs));
+                    }
+                });
+        return future.get();
     }
 
     @GetMapping({"/publicplaylist"})
@@ -82,6 +104,7 @@ public class PlayListController {
 
     @PostMapping("/addtoplaylist")
     public ResponseEntity<?> addToPlaylist(@RequestBody Map<String, String> request) {
+
         String email = request.get("email");
         String songId = request.get("songid");
         String playlistId = request.get("playlistid");

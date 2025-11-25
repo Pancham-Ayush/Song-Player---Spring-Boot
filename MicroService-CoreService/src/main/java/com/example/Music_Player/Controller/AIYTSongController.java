@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,59 +41,42 @@ public class AIYTSongController {
 
     private final ObjectMapper objectMapper;
 
-    public AIYTSongController(SearchYT searchYT, AIService aiService, SongService songService, KafkaProducer kafkaProducer, ObjectMapper objectMapper) {
+    private final Executor virtualThreadExecutor;
+
+    public AIYTSongController(SearchYT searchYT, AIService aiService, SongService songService, KafkaProducer kafkaProducer, ObjectMapper objectMapper,Executor virtualThreadExecutor) {
         this.searchYT = searchYT;
         this.aiService = aiService;
         this.songService = songService;
         this.kafkaProducer = kafkaProducer;
         this.objectMapper = objectMapper;
-
+        this.virtualThreadExecutor = virtualThreadExecutor;
     }
     @GetMapping({"SearchOnYt"})
-    public ResponseEntity<?> searchOnYt(@RequestParam String query, @RequestParam(required = false) String token) {
-        if (query.startsWith("https://www.youtube.com/watch?v=")) {
-            String id = query.replace("https://www.youtube.com/watch?v=", "");
-            Map<String, Object> map = this.searchYT.search(id, (String)null);
-            List<YoutubeVideo> ytList = (List)map.get("yt");
-            YoutubeVideo youtubeVideo = (YoutubeVideo)ytList.get(0);
-            Map<String, Object> response = new HashMap();
-            response.put("yt", new ArrayList(List.of(youtubeVideo)));
-            map.put("nextPageToken", (Object)null);
-            map.put("prevPageToken", (Object)null);
-            return new ResponseEntity(response, HttpStatus.OK);
-        } else if (query.startsWith("https://youtu.be/")) {
-            String id = query.replace("https://youtu.be/", "");
-            if (id.contains("?")) {
-                id = id.substring(0, id.indexOf(63));
-            }
-
-            Map<String, Object> map = this.searchYT.search(id, (String)null);
-            List<YoutubeVideo> ytList = (List)map.get("yt");
-            YoutubeVideo youtubeVideo = (YoutubeVideo)ytList.get(0);
-            Map<String, Object> response = new HashMap();
-            response.put("yt", new ArrayList(List.of(youtubeVideo)));
-            response.put("nextPageToken", (Object)null);
-            response.put("prevPageToken", (Object)null);
-            return new ResponseEntity(response, HttpStatus.OK);
-        } else {
-            Map<String, Object> map = this.searchYT.search(query, token);
-            return ResponseEntity.ok(map);
-        }
+    public ResponseEntity<?> searchOnYt(@RequestParam String query, @RequestParam(required = false) String token) throws ExecutionException, InterruptedException {
+            Future<ResponseEntity<Map<String,Object>>> future= ((ExecutorService)virtualThreadExecutor).submit(()-> {
+                Map<String, Object> map = this.searchYT.search(query, token);
+                return ResponseEntity.ok(map);
+            });
+            return future.get();
     }
 
 
     @PostMapping({"AiDownloading"})
-    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo) throws JsonProcessingException {
-        String ytDetail = youtubeVideo.toString();
-        boolean check = this.aiService.AISongVerification(ytDetail);
-        if (check) {
-            SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail);
-            log.info(dto_yt.toString());
-            String dto_json =objectMapper.writeValueAsString(dto_yt);
-            kafkaProducer.publishDownloadRequest(dto_json);
-            return ResponseEntity.ok("Under AI review for verification. Please check back in the Songs section within the next few min.");
-        } else {
-            return ResponseEntity.ok("Your song didn’t pass AI verification. Please check and upload again. ");
-        }
+    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo) throws JsonProcessingException, ExecutionException, InterruptedException {
+        Future<ResponseEntity<Object>> future = ((ExecutorService) virtualThreadExecutor).submit(()-> {
+            System.out.println("-------------"+Thread.currentThread()+ "----------------");
+            String ytDetail = youtubeVideo.toString();
+            boolean check = this.aiService.AISongVerification(ytDetail);
+            if (check) {
+                SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail);
+                log.info(dto_yt.toString());
+                String dto_json = objectMapper.writeValueAsString(dto_yt);
+                kafkaProducer.publishDownloadRequest(dto_json);
+                return ResponseEntity.ok("Under AI review for verification. Please check back in the Songs section within the next few min.");
+            } else {
+                return ResponseEntity.ok("Your song didn’t pass AI verification. Please check and upload again. ");
+            }
+        });
+        return future.get();
     }
 }

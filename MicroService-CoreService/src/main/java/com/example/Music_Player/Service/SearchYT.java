@@ -11,10 +11,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class SearchYT {
     @Value("${SEARCH_URL}")
@@ -35,6 +38,7 @@ public class SearchYT {
         if (pageToken == null || pageToken.isEmpty()) {
             pageToken=null;
         }
+        log.info(Thread.currentThread().getName());
         String response = youtubeSearchClient.ytSearchCall(
                 "snippet",
                 "video",

@@ -62,6 +62,8 @@ public class SongRepo {
                 .attributesToProject("id","name","artist")
                 .build();
 
+        System.out.println("-----------"+Thread.currentThread()+"----------------");
+
         List<Page<Song>> pages = table.scan(request).stream().collect(Collectors.toList());
         int totalPages = pages.size();
 
