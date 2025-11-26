@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @Slf4j
 @RestController
@@ -32,10 +36,13 @@ public class SecurityController {
 
     private final AuthService authService;
 
-    public SecurityController(AuthenticationManager authenticationManager, JWT_Token jwtToken,AuthService authService) {
+    private final Executor virtualThreadExecutor;
+
+    public SecurityController(AuthenticationManager authenticationManager, JWT_Token jwtToken,AuthService authService, Executor virtualThreadExecutor) {
         this.authenticationManager = authenticationManager;
         this.jwtToken = jwtToken;
         this.authService = authService;
+        this.virtualThreadExecutor = virtualThreadExecutor;
     }
 
     @PostMapping("/manual-create-user")
@@ -51,34 +58,38 @@ public class SecurityController {
 
 
     @PostMapping("/manual-login")
-    public ResponseEntity<?> manualLogin(@RequestBody Map<String, String> request, HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) {
-        String email = (String) request.get("email");
-        String password = (String) request.get("password");
-        Authentication authentication = null;
+    public ResponseEntity<Object> manualLogin(@RequestBody Map<String, String> request, HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) throws ExecutionException, InterruptedException {
+        Future<ResponseEntity<Object>> future = ((ExecutorService) virtualThreadExecutor)
+                .submit(() -> {
+                    String email = (String) request.get("email");
 
-        try {
-            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
-        }
-        CoustomUserDetails userDetails = (CoustomUserDetails) authentication.getPrincipal();
-        String username = userDetails.getUsername();
-        String role = userDetails.getAuthorities().iterator().next().getAuthority();
-        String token = jwtToken.getSecretToken(email, role);
+                    String password = (String) request.get("password");
+                    Authentication authentication = null;
+                    System.out.println("__________"+Thread.currentThread()+"_____________");
+                    try {
+                        authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+                    } catch (Exception e) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
+                    }
+                    CoustomUserDetails userDetails = (CoustomUserDetails) authentication.getPrincipal();
+                    String username = userDetails.getUsername();
+                    String role = userDetails.getAuthorities().iterator().next().getAuthority();
+                    String token = jwtToken.getSecretToken(email, role);
 
-        boolean admin_role =role.equals("ADMIN");
-        Cookie cookie = new Cookie("jwt", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-        httpServletResponse.addCookie(cookie);
-        Map<String, Object> body = new HashMap<>();
-        boolean device = authService.isMobile(httpServletRequest);
-        body.put("message", "Login successful");
-        body.put("email", email);
+                    boolean admin_role = role.equals("ADMIN");
+                    Cookie cookie = new Cookie("jwt", token);
+                    cookie.setHttpOnly(true);
+                    cookie.setPath("/");
+                    cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+                    httpServletResponse.addCookie(cookie);
+                    Map<String, Object> body = new HashMap<>();
+                    boolean device = authService.isMobile(httpServletRequest);
+                    body.put("message", "Login successful");
+                    body.put("email", email);
 
-        return ResponseEntity.ok(Map.of("message", "Login successful", "username", username, "email", email, "mobile", device, "admin", admin_role));
-
+                    return ResponseEntity.ok(Map.of("message", "Login successful", "username", username, "email", email, "mobile", device, "admin", admin_role));
+                });
+        return future.get();
     }
 
 }
