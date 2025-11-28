@@ -1,8 +1,10 @@
 package com.example.YT_S3_MicroService.Service;
 
+import com.example.YT_S3_MicroService.Kafka.KafkaProducerService;
 import com.example.YT_S3_MicroService.Model.Song;
 
 import com.example.YT_S3_MicroService.Repository.SongRepo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,9 +35,15 @@ public class YT_DLP_Service {
 
     private final S3AsyncClient s3AsyncClient;
 
-    public YT_DLP_Service(SongRepo songRepo,  S3AsyncClient s3AsyncClient) {
+    private final KafkaProducerService kafkaProducerService;
+
+    private final ObjectMapper objectMapper;
+
+    public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaProducerService kafkaProducerService, ObjectMapper objectMapper) {
         this.songRepo = songRepo;
         this.s3AsyncClient = s3AsyncClient;
+        this.kafkaProducerService = kafkaProducerService;
+        this.objectMapper = objectMapper;
     }
 
     public CompletableFuture<Void> uploadYoutubeAudioAsync(String videoUrl, Song song) {
@@ -82,6 +90,8 @@ public class YT_DLP_Service {
                             song.setPath(fileName);
                             song.setSize(downloadedFile.length());
                             this.songRepo.saveSong(song);
+                            String openSearchSongString  = objectMapper.writeValueAsString(song);
+                            kafkaProducerService.sendMessage(openSearchSongString);
                             log.info("Successfully uploaded Youtube Audio File");
                         }
                     } catch (Exception e) {

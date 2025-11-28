@@ -22,8 +22,5 @@ public class KafkaProducer {
     {
         this.kafkaTemplate.send(topic, youtubeVideo);
     }
-    public void publishManual(String topic, String object) {
-        this.kafkaTemplate.send(topic, object);
 
-    }
 }
