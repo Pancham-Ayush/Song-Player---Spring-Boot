@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  opensearch-node1:
+    image: opensearchproject/opensearch:latest # Use a specific version in production
+    container_name: opensearch-node1
+    environment:
+      # Required for a single-node setup (dev/test)
+      - discovery.type=single-node
+      # Set a strong initial admin password (required in recent versions)
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Ayush123456!
+      # Cluster Name
+      - cluster.name=opensearch-cluster
+      # Memory settings (adjust as needed)
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      # Disables security in case of issues (only for development/testing!)
+      # - plugins.security.disabled=true
+    ulimits:
+      # Required for OpenSearch to lock memory
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      # **This is for persistence.** # It maps the named volume 'opensearch-data' to the container's data path.
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      # HTTP/REST API port
+      - 9200:9200
+      # Inter-node communication port
+      - 9600:9600
+    networks:
+      - opensearch-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest # Should match OpenSearch version
+    container_name: opensearch-dashboards
+    ports:
+      # UI port
+      - 5601:5601
+    expose:
+      - '5601'
+    environment:
+      # Configure Dashboards to connect to the OpenSearch service
+      OPENSEARCH_HOSTS: '["https://opensearch-node1:9200"]'
+    networks:
+      - opensearch-net
+    depends_on:
+      - opensearch-node1
+
+# Define the named volume for persistent data
+volumes:
+  opensearch-data:
+
+# Define a network for containers to communicate
+networks:
+  opensearch-net:
+    driver: bridge
