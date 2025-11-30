@@ -1,6 +1,6 @@
 package com.example.YT_S3_MicroService.Kafka;
 
-import com.fasterxml.jackson.databind.ser.std.StringSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
-    @Value("spring.kafka.bootstrap-servers")
+    @Value("${spring.kafka.bootstrap-servers}")
     String bootstrapServers;
 
     @Bean

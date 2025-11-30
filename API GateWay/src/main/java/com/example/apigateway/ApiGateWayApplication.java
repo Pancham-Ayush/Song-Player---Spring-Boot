@@ -21,6 +21,7 @@ public class ApiGateWayApplication {
 
     @Autowired
     protected AdminCheckFilter adminCheckFilter;
+
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtCookieFilter jwtFilter) {
         log.info("Custom Route Locator"+ builder.routes());
@@ -45,6 +46,10 @@ public class ApiGateWayApplication {
                         .path("/auth/**")
                         .filters(f -> f.stripPrefix(1))
                         .uri("lb://SECURITY-MICROSERVICE"))
+                .route("search",r -> r
+                        .path("/search/**")
+                        .filters( f -> f.stripPrefix(1).filter(jwtFilter))
+                        .uri("lb://SEARCHENGINE-MICROSERVICE"))
                 .build();
     }
 

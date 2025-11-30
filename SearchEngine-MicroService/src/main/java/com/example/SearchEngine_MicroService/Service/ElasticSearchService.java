@@ -2,6 +2,7 @@ package com.example.SearchEngine_MicroService.Service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
@@ -44,8 +45,11 @@ public class ElasticSearchService {
 
         MultiMatchQuery matchQuery = MultiMatchQuery.of( i -> i
                 .query(query)
+o                .fuzziness("AUTO")
                 .fuzzyTranspositions(true)
-                .fields("title","description","name","artist","genre"));
+                .fields("title","description","name","artist","genre")
+                .minimumShouldMatch("70%")
+                .type(TextQueryType.BestFields));
 
         SearchRequest searchRequest = SearchRequest.of( s -> s
                 .index(indexName)

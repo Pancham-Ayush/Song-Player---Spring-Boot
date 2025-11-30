@@ -34,16 +34,16 @@ public class S3Config {
     @Bean
     public S3Client s3Client() {
 
-        S3Configuration s3Configuration = S3Configuration.builder()
-                .accelerateModeEnabled(accelerated)
-                .build();
+//        S3Configuration s3Configuration = S3Configuration.builder()
+//                .accelerateModeEnabled(accelerated)
+//                .build();
 
         AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         return S3Client
                 .builder()
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredentials))
-                .serviceConfiguration(s3Configuration)
+//                .serviceConfiguration(s3Configuration)
                 .build();
     }
 }
