@@ -1,17 +1,18 @@
 package com.example.YT_S3_MicroService.Service;
 
-import com.example.YT_S3_MicroService.Kafka.KafkaProducerService;
+import com.example.YT_S3_MicroService.Kafka.KafkaElasticSearchAdditionReq;
 import com.example.YT_S3_MicroService.Model.Song;
 
 import com.example.YT_S3_MicroService.Repository.SongRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,14 +36,14 @@ public class YT_DLP_Service {
 
     private final S3AsyncClient s3AsyncClient;
 
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq;
 
     private final ObjectMapper objectMapper;
 
-    public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaProducerService kafkaProducerService, ObjectMapper objectMapper) {
+    public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq, ObjectMapper objectMapper) {
         this.songRepo = songRepo;
         this.s3AsyncClient = s3AsyncClient;
-        this.kafkaProducerService = kafkaProducerService;
+        this.kafkaElasticSearchAdditionReq = kafkaElasticSearchAdditionReq;
         this.objectMapper = objectMapper;
     }
 
@@ -90,8 +91,8 @@ public class YT_DLP_Service {
                             song.setPath(fileName);
                             song.setSize(downloadedFile.length());
                             this.songRepo.saveSong(song);
-                            String openSearchSongString  = objectMapper.writeValueAsString(song);
-                            kafkaProducerService.sendMessage(openSearchSongString);
+                            String openSearchSong_Json =objectMapper.writeValueAsString(song);
+                            kafkaElasticSearchAdditionReq.sendMessage(openSearchSong_Json);
                             log.info("Successfully uploaded Youtube Audio File");
                         }
                     } catch (Exception e) {
@@ -119,6 +120,10 @@ public class YT_DLP_Service {
         });
     }
 
+    CompletableFuture<PutObjectResponse> UploadASYNC(String path, MultipartFile file) throws IOException {
+        PutObjectRequest putObjectRequest = (PutObjectRequest)PutObjectRequest.builder().bucket(this.bucket).key(path).contentType(file.getContentType()).build();
+        return this.s3AsyncClient.putObject(putObjectRequest, AsyncRequestBody.fromBytes(file.getBytes()));
+    }
     private static Process getProcess(String videoUrl, String tempOutputPath) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(
                 "yt-dlp",
@@ -132,6 +137,19 @@ public class YT_DLP_Service {
         );
         pb.redirectErrorStream(true);
         return pb.start();
+    }
+    public Song manualAdd(Song song, MultipartFile file) {
+        try {
+            String fileName = System.currentTimeMillis()+Math.random()+ "_" + file.getOriginalFilename();
+            song.setPath(fileName);
+            song.setSize(file.getSize());
+            this.UploadASYNC(fileName, file);
+            String openSearchSong_Json =objectMapper.writeValueAsString(song);
+            kafkaElasticSearchAdditionReq.sendMessage(openSearchSong_Json);
+            return this.songRepo.saveSong(song);
+        } catch (Exception var4) {
+            return null;
+        }
     }
 
 }

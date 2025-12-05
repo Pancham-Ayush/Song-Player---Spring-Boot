@@ -45,7 +45,7 @@ public class ElasticSearchService {
 
         MultiMatchQuery matchQuery = MultiMatchQuery.of( i -> i
                 .query(query)
-o                .fuzziness("AUTO")
+                .fuzziness("AUTO")
                 .fuzzyTranspositions(true)
                 .fields("title","description","name","artist","genre")
                 .minimumShouldMatch("70%")
