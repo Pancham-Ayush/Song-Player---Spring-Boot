@@ -14,4 +14,5 @@ public class SONG_YT_DTO {
     String genre;
     String description;
     String url;
+    String email;
 }

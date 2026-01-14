@@ -38,6 +38,12 @@ public class ApiRouterConfig {
                         .filters(f -> f.stripPrefix(1))
                         .uri("lb://SECURITY-MICROSERVICE"))
                 //                --------------------------------------------------
+                .route("SSE", r -> r
+                        .path("/s3/upload/notification/stream")
+                        .filters(f -> f
+                                .stripPrefix(2)
+                                .filter(jwtFilter))
+                        .uri("lb://YT-S3-MICROSERVICE"))
                 .route("admin-upload", r -> r
                         .path("/s3/upload/**")
                         .filters(f -> f
@@ -46,7 +52,7 @@ public class ApiRouterConfig {
                         .uri("lb://YT-S3-MICROSERVICE"))
 //                ---------------------------------------------------
                 .route("admin-delete", r -> r
-                        .path("s3/delete/**")
+                        .path("/s3/delete/**")
                         .filters(f -> f
                                 .stripPrefix(1)
                                 .filter(adminCheckFilter))

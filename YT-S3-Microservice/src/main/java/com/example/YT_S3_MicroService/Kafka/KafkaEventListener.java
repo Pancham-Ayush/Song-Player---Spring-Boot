@@ -41,7 +41,8 @@ public class KafkaEventListener {
         try {
             Song song = yt_dto_to_song.SongMapper(yt_dto);
             String url = yt_dto.getUrl();
-            yt_dlp_service.uploadYoutubeAudioAsync(url, song);
+            System.out.println("+++"+yt_dto.toString());
+            yt_dlp_service.uploadYoutubeAudioAsync(url, song, yt_dto.getEmail());
         } catch (Exception e) {
             log.error("Error while handling Kafka message: {}", e.getMessage(), e);
         }

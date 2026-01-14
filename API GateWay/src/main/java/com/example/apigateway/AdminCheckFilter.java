@@ -26,53 +26,52 @@ public class AdminCheckFilter implements GatewayFilter {
     String secretKey;
 
 
-    @Qualifier("Virtual")
-    @Autowired
-    Executor virtualThreadConfig;
+
+
+    @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
-        return Mono.fromFuture(
-                        CompletableFuture.runAsync(() -> {
-                            validateToken(exchange);
-                        }, virtualThreadConfig)
-                )
-                .then(chain.filter(exchange));
-
+        String token = null;
+        if (exchange.getRequest().getCookies().containsKey("jwt")) {
+            token = exchange.getRequest().getCookies().getFirst("jwt").getValue();
         }
 
-        void validateToken(ServerWebExchange exchange) {
-            String token = null;
-            System.out.println("---------------"+Thread.currentThread()+"____________________");
-            if (exchange.getRequest().getCookies().containsKey("jwt")) {
-                token = exchange.getRequest().getCookies().getFirst("jwt").getValue();
-            }
-
-            if (token == null) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                exchange.getResponse().setComplete().block();
-                 return;
-            }
-
-            try {
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-
-                if (claims.getExpiration().before(new Date())) {
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    exchange.getResponse().setComplete().block();
-                    return;
-                }
-
-                if (!claims.get("role").equals("ADMIN")) {
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    exchange.getResponse().setComplete().block();
-                }
-            } catch (Exception e) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                exchange.getResponse().setComplete().block();
-            }
+        if (token == null) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
         }
+
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            if (claims.getExpiration().before(new Date())) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+
+            }
+
+            if (!claims.get("role").equals("ADMIN")) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            String email = claims.get("email", String.class);
+            String  role = claims.get("role", String.class);
+
+            ServerWebExchange mutated = exchange.mutate().request( r -> r
+                            .header("X-User-Email", email)
+                            .header("X-User-Role", role)).build();
+
+            return chain.filter(mutated);
+
+        } catch (Exception e) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+
+    }
 }

@@ -2,6 +2,7 @@ package com.example.YT_S3_MicroService.Controller;
 
 import com.example.YT_S3_MicroService.Model.Song;
 import com.example.YT_S3_MicroService.Service.YT_DLP_Service;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -27,7 +28,7 @@ public class ManualUploadController {
 
 
     @PostMapping({"/upload"})
-    public ResponseEntity<Object> uploadSong(@RequestPart(value = "file",required = false) MultipartFile file, @RequestPart(value = "ytUrl",required = false) String ytUrl, @RequestPart("song") Song song) throws IOException, InterruptedException, ExecutionException {
+    public ResponseEntity<Object> uploadSong(@RequestPart(value = "file",required = false) MultipartFile file, @RequestPart(value = "ytUrl",required = false) String ytUrl, @RequestPart("song") Song song, HttpServletRequest request) throws IOException, InterruptedException, ExecutionException {
                     if (file != null && !SongContentType.contains(file.getContentType().toLowerCase())) {
                         return ResponseEntity.badRequest().body("Only MP3 / OGG files are allowed!");
                     } else {
@@ -37,7 +38,7 @@ public class ManualUploadController {
                             response.put("message", "Song saved successfully!");
                             return ResponseEntity.ok(response);
                         } else {
-                            this.yt_dlp_service.uploadYoutubeAudioAsync(ytUrl, song);
+                            this.yt_dlp_service.uploadYoutubeAudioAsync(ytUrl, song,request.getParameter("X-User-Email"));
                             Map<String, String> response = new HashMap();
                             response.put("message", "Song saved successfully!");
                             return ResponseEntity.ok(response);

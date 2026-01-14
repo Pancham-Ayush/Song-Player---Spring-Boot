@@ -58,7 +58,11 @@ public class RetrievalService {
             start = Long.parseLong(rangeStart[0]);
             end = Long.parseLong(rangeStart[0]) + this.chunkSize;
             end = (end > fileLength) ? fileLength - 1L : end;
-
+        }
+        else {
+            range = "bytes=" +start+'-'+chunkSize ;
+            end = (fileLength > chunkSize) ? chunkSize : fileLength-1L;
+        }
 
             headRequest.range("bytes=" + start + "-" + end);
             ResponseInputStream<GetObjectResponse> responseInputStream = this.s3Client.getObject((GetObjectRequest) headRequest.build());
@@ -81,7 +85,5 @@ public class RetrievalService {
             } catch (Exception var16) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
-        }
-        return ResponseEntity.notFound().build();
     }
 }

@@ -13,11 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
-
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 @Component
@@ -31,23 +28,16 @@ public class JwtCookieFilter implements GatewayFilter {
     Executor executor;
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-      return Mono.fromFuture(
-              CompletableFuture.runAsync (
-                      ()->validateToken(exchange),executor))
-              .then(chain.filter(exchange));
-    }
-    void validateToken(ServerWebExchange exchange) {
-        String token = null;
-        System.out.println("---------------"+Thread.currentThread()+"____________________");
 
+        String token = null;
         if (exchange.getRequest().getCookies().containsKey("jwt")) {
             token = exchange.getRequest().getCookies().getFirst("jwt").getValue();
         }
 
         if (token == null) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            exchange.getResponse().setComplete().block();
-            return;
+            return exchange.getResponse().setComplete();
+
         }
 
         try {
@@ -59,13 +49,20 @@ public class JwtCookieFilter implements GatewayFilter {
 
             if (claims.getExpiration().before(new Date())) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                exchange.getResponse().setComplete().block();
+                return exchange.getResponse().setComplete();
             }
+
+            String email = claims.get("email").toString();
+            String role = claims.get("role").toString();
+
+            ServerWebExchange mutated = exchange.mutate().request( r -> r
+                    .header("X-User-Email", email)
+                    .header("X-User-Role", role)).build();
+            return chain.filter(mutated);
 
         } catch (Exception e) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            exchange.getResponse().setComplete().block();
+            return exchange.getResponse().setComplete();
         }
-
     }
 }

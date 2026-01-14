@@ -65,18 +65,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                         cookie.setPath("/");
                         cookie.setMaxAge(7 * 24 * 60 * 60);
                         response.addCookie(cookie);
-                        boolean device = authService.isMobile(request);
-                        boolean adminRole = false;
-                        if (user.getRole().equalsIgnoreCase("ADMIN"))
-                            adminRole = true;
-                        Map<String, Object> jsonMap = Map.of(
-                                "message", "Login successful",
-                                "username", name,
-                                "email", email,
-                                "mobile", device,
-                                "admin", adminRole
-                        );
-                        String json = new ObjectMapper().writeValueAsString(jsonMap);
                         response.setContentType("text/html");
                         response.getWriter().write(
                                 "<html><body>" +

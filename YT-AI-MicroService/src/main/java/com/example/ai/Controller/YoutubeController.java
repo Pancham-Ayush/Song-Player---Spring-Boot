@@ -15,6 +15,7 @@ import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
@@ -55,13 +56,14 @@ public class YoutubeController {
 
 
     @PostMapping({"AiDownloading"})
-    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo) throws JsonProcessingException, ExecutionException, InterruptedException {
+    public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo, HttpServletRequest request) throws JsonProcessingException, ExecutionException, InterruptedException {
         Future<ResponseEntity<Object>> future = ((ExecutorService) virtualThreadExecutor).submit(()-> {
-            System.out.println("-------------"+Thread.currentThread()+ "----------------");
             String ytDetail = youtubeVideo.toString();
+            String Email = request.getHeader("X-User-Email");
+            log.info(Email+"///");
             boolean check = this.aiService.AISongVerification(ytDetail);
             if (check) {
-                SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail);
+                SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail+" "+ Email);
                 log.info(dto_yt.toString());
                 String dto_json = objectMapper.writeValueAsString(dto_yt);
                 kafkaDownloadReq.publishDownloadRequest(dto_json);

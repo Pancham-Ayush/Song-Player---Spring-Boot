@@ -4,6 +4,7 @@ import com.example.YT_S3_MicroService.Kafka.KafkaElasticSearchAdditionReq;
 import com.example.YT_S3_MicroService.Model.Song;
 
 import com.example.YT_S3_MicroService.Repository.SongRepo;
+import com.example.YT_S3_MicroService.ServerSentEvent.SSE_Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,14 +41,17 @@ public class YT_DLP_Service {
 
     private final ObjectMapper objectMapper;
 
-    public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq, ObjectMapper objectMapper) {
+    private final SSE_Service sseService;
+
+    public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq, ObjectMapper objectMapper, SSE_Service sseService) {
         this.songRepo = songRepo;
         this.s3AsyncClient = s3AsyncClient;
         this.kafkaElasticSearchAdditionReq = kafkaElasticSearchAdditionReq;
         this.objectMapper = objectMapper;
+        this.sseService = sseService;
     }
 
-    public CompletableFuture<Void> uploadYoutubeAudioAsync(String videoUrl, Song song) {
+    public CompletableFuture<Void> uploadYoutubeAudioAsync(String videoUrl, Song song, String Email) {
         return CompletableFuture.runAsync(() -> {
 
             String fileName = System.currentTimeMillis() + "_" + song.getName().replaceAll("[^a-zA-Z0-9\\-_]", "_") + ".opus";
@@ -94,6 +98,7 @@ public class YT_DLP_Service {
                             String openSearchSong_Json =objectMapper.writeValueAsString(song);
                             kafkaElasticSearchAdditionReq.sendMessage(openSearchSong_Json);
                             log.info("Successfully uploaded Youtube Audio File");
+                            sseService.sendUser(Email, "++++ Successfully uploaded Youtube Audio File ++++");
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

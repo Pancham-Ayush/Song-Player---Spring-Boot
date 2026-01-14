@@ -65,7 +65,6 @@ public class SecurityController {
 
                     String password = (String) request.get("password");
                     Authentication authentication = null;
-                    System.out.println("__________"+Thread.currentThread()+"_____________");
                     try {
                         authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
                     } catch (Exception e) {
@@ -75,7 +74,6 @@ public class SecurityController {
                     String username = userDetails.getUsername();
                     String role = userDetails.getAuthorities().iterator().next().getAuthority();
                     String token = jwtToken.getSecretToken(email, role);
-
                     boolean admin_role = role.equals("ADMIN");
                     Cookie cookie = new Cookie("jwt", token);
                     cookie.setHttpOnly(true);

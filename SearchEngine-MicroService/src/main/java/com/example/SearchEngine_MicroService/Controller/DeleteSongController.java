@@ -3,7 +3,8 @@ package com.example.SearchEngine_MicroService.Controller;
 import com.example.SearchEngine_MicroService.Model.Song;
 import com.example.SearchEngine_MicroService.Repo.PlaylistRepo;
 import com.example.SearchEngine_MicroService.Repo.SongRepo;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +16,11 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
+
+@Slf4j
 @RestController
 public class DeleteSongController {
-
-    private final Executor virtualThreadExecutor;
 
     private final SongRepo songRepo;
 
@@ -30,8 +28,7 @@ public class DeleteSongController {
 
     private final S3Client s3Client;
 
-    DeleteSongController (@Qualifier("Virtual") Executor virtualThreadExecutor, SongRepo songRepo, PlaylistRepo playlistRepo, S3Client s3Client) {
-        this.virtualThreadExecutor = virtualThreadExecutor;
+    DeleteSongController ( SongRepo songRepo, PlaylistRepo playlistRepo, S3Client s3Client) {
         this.songRepo = songRepo;
         this.playlistRepo = playlistRepo;
         this.s3Client = s3Client;
@@ -41,21 +38,19 @@ public class DeleteSongController {
     private String bucketName;
 
     @PostMapping({"/delete"})
-    public ResponseEntity<Map<String, String>> deleteSong(@RequestBody Map<String, String> map) throws ExecutionException, InterruptedException {
-        Future<ResponseEntity<Map<String, String>>> future =
-                ((ExecutorService) virtualThreadExecutor)
-                        .submit(() -> {
+    public ResponseEntity<Map<String, String>> deleteSong(@RequestBody Map<String, String> map) throws Exception{
+
                             Song song = (Song) this.songRepo.findById((String) map.get("id")).orElse(null);
                             if (song == null) {
                                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("Message", "Song not found"));
-                            } else {
+                            }
+                            else {
                                 String key = song.getPath();
                                 this.songRepo.deleteSong(song.getId());
                                 this.playlistRepo.deleteFromPlaylist(song.getId());
                                 this.s3Client.deleteObject( DeleteObjectRequest.builder().bucket(this.bucketName).key(key).build());
                                 return ResponseEntity.ok().body(Map.of("Message", "Song deleted successfully!"));
                             }
-                        });
-        return future.get();
+
     }
 }
