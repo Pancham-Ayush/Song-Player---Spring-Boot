@@ -1,0 +1,121 @@
+version: "3.9"
+
+# ---------- SHARED ENV FILE ----------
+x-common-env: &common-env
+  env_file:
+    - /home/pancham-ayush/ENV-File.txt
+
+services:
+
+  # ---------- REDIS ----------
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"          # keep only for local debugging
+    
+
+  # ---------- ZOOKEEPER ----------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    
+
+  # ---------- KAFKA ----------
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"          # keep only for local debugging
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    
+
+  # ---------- ELASTICSEARCH ----------
+  elasticsearch:
+    image: elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"          # optional (debug only)
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  # ---------- EUREKA SERVER ----------
+  eureka:
+    <<: *common-env
+    build: ./Eureka-Server
+    container_name: eureka
+    ports:
+      - "8761:8761"
+
+  # ---------- API GATEWAY ----------
+  api-gateway:
+    <<: *common-env
+    build: ./APIGateWay
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka
+
+  # ---------- SEARCH SERVICE ----------
+  search-service:
+    <<: *common-env
+    build: ./SearchEngine-MicroService
+    container_name: search-service
+    depends_on:
+      - eureka
+      - elasticsearch
+
+  # ---------- SECURITY SERVICE ----------
+  security-service:
+    <<: *common-env
+    build: ./Security-MicroService
+    container_name: security-service
+    depends_on:
+      - eureka
+    ports:
+      - "9090:9090"         
+
+  # ---------- PLAYER SERVICE ----------
+  player-service:
+    <<: *common-env
+    build: ./MicroService-Player
+    container_name: player-service
+    depends_on:
+      - eureka
+      - redis
+      - kafka
+
+  # ---------- YT AI SERVICE ----------
+  yt-ai-service:
+    <<: *common-env
+    build: ./YT-AI-MicroService
+    container_name: yt-ai-service
+    depends_on:
+      - eureka
+      - kafka
+
+  # ---------- YT S3 SERVICE ----------
+  yt-s3-service:
+    <<: *common-env
+    build: ./YT-S3-Microservice
+    container_name: yt-s3-service
+    depends_on:
+      - eureka
+
+# ---------- DOCKER MANAGED VOLUMES ----------
+volumes:
+  es-data:
