@@ -116,6 +116,12 @@ services:
     depends_on:
       - eureka
 
+  # ------React  -----------
+  react:
+    build: ../Song-Player---React-Vite
+    container_name: react-frontend
+    ports:
+      - "5173:80"
 # ---------- DOCKER MANAGED VOLUMES ----------
 volumes:
   es-data:
