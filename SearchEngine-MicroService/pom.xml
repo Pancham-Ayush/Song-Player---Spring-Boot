@@ -33,15 +33,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!--  ElasticSearch -->
+        <!-- Elasticsearch Java API Client -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
+            <version>8.12.2</version>
         </dependency>
+
+        <!-- Low-level REST client -->
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-client</artifactId>
-            <version>9.2.1</version> <!-- match your Elasticsearch server version -->
+            <version>8.12.2</version>
         </dependency>
 
         <!-- Kafka -->

@@ -5,7 +5,6 @@ import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.example.SearchEngine_MicroService.Model.Song;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
-
 
 @Slf4j
 @Service
@@ -26,43 +23,43 @@ public class ElasticSearchService {
 
     private final ElasticsearchClient elasticsearchClient;
 
-    public ElasticSearchService( ElasticsearchClient elasticsearchClient) {
+    public ElasticSearchService(ElasticsearchClient elasticsearchClient) {
         this.elasticsearchClient = elasticsearchClient;
     }
 
     public void uploadSong(Song song) throws IOException {
-        IndexRequest<Song> indexRequest = IndexRequest.of(
-                i -> i
-                        .index(indexName)
-                        .id(song.getId())
-                        .document(song)
+
+        IndexRequest<Song> request = IndexRequest.of(i -> i
+                .index(indexName)
+                .id(song.getId())
+                .document(song)
         );
-        IndexResponse response = elasticsearchClient.index(indexRequest);
-        log.debug(response.toString());
+
+        IndexResponse response = elasticsearchClient.index(request);
+        log.info("Indexed song {}", response.id());
     }
 
     public List<Song> searchSongs(String query) throws IOException {
 
-        MultiMatchQuery matchQuery = MultiMatchQuery.of( i -> i
+        MultiMatchQuery multiMatch = MultiMatchQuery.of(m -> m
                 .query(query)
+                .fields("title", "description", "name", "artist", "genre")
                 .fuzziness("AUTO")
-                .fuzzyTranspositions(true)
-                .fields("title","description","name","artist","genre")
                 .minimumShouldMatch("70%")
-                .type(TextQueryType.BestFields));
+                .type(TextQueryType.BestFields)
+        );
 
-        SearchRequest searchRequest = SearchRequest.of( s -> s
-                .index(indexName)
-                .query(matchQuery)
-                .size(10));
-
-        SearchResponse <Song>response = elasticsearchClient.search(searchRequest, Song.class);
+        SearchResponse<Song> response =
+                elasticsearchClient.search(s -> s
+                                .index(indexName)
+                                .query(q -> q.multiMatch(multiMatch))
+                                .size(10),
+                        Song.class
+                );
 
         return response.hits().hits()
                 .stream()
                 .map(hit -> hit.source())
-                .collect(Collectors.toList());
-
+                .toList();
     }
-
 }
