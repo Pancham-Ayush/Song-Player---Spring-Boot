@@ -1,0 +1,17 @@
+type Song {
+    id : String!
+    name : String
+    artist : String
+    genre : String
+    description : String
+}
+
+type SongPage {
+    content: [Song!]!
+    chunkSize: Int!
+    nextCursor: String
+}
+
+type Query {
+    getAllSongs(cursor: String, chunkSize: Int = 10): SongPage!
+}

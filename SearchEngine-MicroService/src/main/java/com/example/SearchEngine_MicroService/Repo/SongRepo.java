@@ -1,5 +1,6 @@
 package com.example.SearchEngine_MicroService.Repo;
 
+import com.example.SearchEngine_MicroService.GraphQl.GraphQL_DTO.SongPage;
 import com.example.SearchEngine_MicroService.Model.Song;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Repository;
@@ -9,12 +10,10 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Repository
 public class SongRepo {
@@ -47,33 +46,34 @@ public class SongRepo {
     }
 
 
-
-
-    public Map<String,Object> findAll(int page, int chunkSize) {
-
-
-
-        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+    public SongPage findAll(String lastId, int chunkSize) {
+        ScanEnhancedRequest.Builder builder = ScanEnhancedRequest.builder()
                 .limit(chunkSize)
-                .attributesToProject("id","name","artist")
+                .attributesToProject("id", "name", "artist");
+
+        if (lastId != null) {
+            builder.exclusiveStartKey(
+                    Map.of("id", AttributeValue.builder().s(lastId).build())
+            );
+        }
+
+        Page<Song> page = table.scan(builder.build())
+                .iterator()
+                .next();
+
+        Map<String, AttributeValue> lek = page.lastEvaluatedKey();
+
+        String nextCursor = null;
+        if (lek != null && lek.get("id") != null && lek.get("id").s() != null) {
+            nextCursor = lek.get("id").s();
+        }
+
+
+        return SongPage.builder()
+                .content(page.items())
+                .nextCursor(nextCursor)
+                .chunkSize(chunkSize)
                 .build();
-
-        System.out.println("-----------"+Thread.currentThread()+"----------------");
-
-        List<Page<Song>> pages = table.scan(request).stream().collect(Collectors.toList());
-        int totalPages = pages.size();
-
-        List<Song> songs = (page < totalPages) ? pages.get(page).items() : List.of();
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("content", songs);
-        result.put("currentPage", page);
-        result.put("totalPages", totalPages);
-        result.put("chunkSize", chunkSize);
-
-        return result;
     }
-
-
 
 }
