@@ -1,0 +1,227 @@
+Summary of Findings:
+The investigation was interrupted and is therefore incomplete. The analysis only covers the `Eureka-Server` and the configuration files of the `APIGateWay`. A number of significant issues were found in these components, including the use of unstable dependencies, non-LTS Java versions, insecure Docker configurations, and misconfigurations in `pom.xml` and `application.properties` files. It is highly likely that a full analysis of the remaining microservices (`MicroService-Player`, `Orchestrator`, `SearchEngine-MicroService`, `Security-MicroService`, `YT-AI-MicroService`, `YT-S3-Microservice`) and the `docker-compose.yml` would reveal further issues. The identified problems suggest a need for a thorough review of dependency management, configuration best practices, and container security across the entire project.
+
+---
+
+**Issues Found:**
+
+**1. File:** `Eureka-Server/pom.xml`
+   **Issue:** The POM file specifies a non-LTS Java version (25) and potentially unstable, non-existent versions for Spring Boot (3.5.8) and Spring Cloud (2025.0.0). It also lacks test dependencies.
+   **Key Symbols:**
+   - `java.version`
+   - `spring-boot-starter-parent.version`
+   - `spring-cloud.version`
+
+**2. File:** `Eureka-Server/src/main/resources/application.properties`
+   **Issue:** Contains a redundant and likely incorrect property for disabling Eureka registration. The correct properties are already present.
+   **Key Symbols:**
+   - `spring.cloud.service-registry.auto-registration.enabled`
+
+**3. File:** `Eureka-Server/Dockerfile`
+   **Issue:** The Dockerfile uses a Java 25 early-access, full JDK image, which is not suitable for production. It also runs the container as the root user, which is a security risk. A multi-stage build with a JRE and a non-root user is recommended.
+   **Key Symbols:**
+   - `FROM openjdk:25-ea-jdk`
+
+**4. File:** `APIGateWay/pom.xml`
+   **Issue:** Contains a typo in a critical dependency (`spring-cloud-gateway-server-webflux` should likely be `spring-cloud-starter-gateway`). It also includes an explicit, outdated version of `netty-all`, which can cause version conflicts.
+   **Key Symbols:**
+   - `spring-cloud-gateway-server-webflux`
+   - `netty-all`
+
+**5. File:** `APIGateWay/src/main/resources/application.properties`
+   **Issue:** The application name 'API GateWay' contains a space, which is not recommended. The property `JWT.secret.key` uses uppercase letters, which is unconventional.
+   **Key Symbols:**
+   - `spring.application.name`
+   - `JWT.secret.key`
+
+---
+**Second Analysis Summary:**
+The investigation was interrupted before all services could be analyzed. However, significant issues were found in the `docker-compose.yml` file and the `MicroService-Player` service. Key problems include: a hardcoded absolute path to an environment file in `docker-compose.yml`, making the project non-portable; use of an invalid Java version ('25') and a non-existent Spring Cloud version in `MicroService-Player`'s `pom.xml`; and the use of an unstable early-access JDK in the `MicroService-Player`'s Dockerfile. The `Orchestrator` service is present in the file system but is not included in the Docker Compose setup. Further analysis is required for the other microservices (`Orchestrator`, `SearchEngine-MicroService`, `Security-MicroService`, `YT-AI-MicroService`, `YT-S3-Microservice`) to provide a complete report.
+
+---
+**Additional Issues Found:**
+
+**6. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/docker-compose.yml`
+   **Issue:** Contains multiple configuration and security issues, such as a hardcoded absolute path to an environment file, exposed ports for debugging, and non-production-ready settings for Kafka and Elasticsearch. The `Orchestrator` service is also missing.
+   **Key Symbols:**
+   - `x-common-env`
+   - `redis`
+   - `kafka`
+   - `elasticsearch`
+   - `orchestrator`
+   - `react`
+
+**7. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/MicroService-Player/pom.xml`
+   **Issue:** Specifies an invalid Java version (25) and a non-existent Spring Cloud version (2025.0.0), which will cause build failures. It also lacks test dependencies, indicating a lack of automated testing.
+   **Key Symbols:**
+   - `java.version`
+   - `spring-cloud.version`
+
+**8. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/MicroService-Player/Dockerfile`
+   **Issue:** Uses an unstable Early Access JDK as the base image, which is not suitable for production. It also lacks a multi-stage build and runs the application as the root user, which are poor security and optimization practices.
+   **Key Symbols:**
+   - `FROM openjdk:25-ea-jdk`
+
+**9. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/MicroService-Player/src/main/java/com/example/MIcroService_Player/Controller/SongController.java`
+   **Issue:** The implementation uses virtual threads in a clunky way by blocking on `Future.get()`. Spring MVC offers better abstractions for asynchronous controllers. The endpoint naming is not RESTful.
+   **Key Symbols:**
+   - `getSong`
+   - `Future.get()`
+---
+**Third Analysis Summary:**
+The investigation was interrupted and is incomplete. I was only able to perform a partial analysis of the `Orchestrator` service and had just begun investigating the `SearchEngine-MicroService`. The analysis of `Security-MicroService`, `YT-AI-MicroService`, and `YT-S3-Microservice` was not started.
+
+Based on the partial analysis, the `Orchestrator` service is misconfigured and incomplete. The `pom.xml` specifies Java version 25, which is highly unusual and likely an error. It also includes a Eureka client dependency, but the corresponding configuration to connect to the Eureka server is missing from `application.properties`. The service itself contains no business logic, suggesting it is a placeholder. These issues must be addressed to make the service functional.
+
+---
+**Additional Issues Found:**
+
+**10. File:** `Orchestrator/pom.xml`
+   **Issue:** Contains a likely incorrect Java version ('25') and an unused Eureka client dependency without the necessary configuration in application.properties. Also includes potentially unnecessary AI and GCP dependencies.
+   **Key Symbols:**
+   - `java.version`
+   - `spring-cloud-starter-netflix-eureka-client`
+
+**11. File:** `Orchestrator/src/main/resources/application.properties`
+   **Issue:** The file is missing the critical Eureka client configuration (`eureka.client.serviceUrl.defaultZone`) required for service discovery, despite the dependency being present in the pom.xml.
+   **Key Symbols:**
+   - `spring.application.name`
+
+**12. File:** `Orchestrator/src/main/java/com/example/Orchestrator/OrchestratorApplication.java`
+   **Issue:** This is a skeleton Spring Boot application class with no actual orchestration logic. The service is not implemented.
+   **Key Symbols:**
+   - `OrchestratorApplication`
+---
+**Fourth Analysis Summary:**
+My investigation was interrupted before completion. I was only able to perform a partial analysis of the `SearchEngine-MicroService`. The primary issues found are critical misconfigurations in the `pom.xml` (invalid Spring Boot, Java, and Spring Cloud versions) that will prevent the application from building. The `Dockerfile` uses a non-production JDK image. The application code uses modern Java features (Virtual Threads) that are inconsistent with the build configuration. The Elasticsearch client is configured without authentication, and deprecated AWS properties are used. A full analysis of the remaining services (`Security-MicroService`, `YT-AI-MicroService`, `YT-S3-Microservice`) and the rest of `SearchEngine-MicroService`'s business logic is still required.
+
+---
+**Additional Issues Found:**
+
+**13. File:** `SearchEngine-MicroService/pom.xml`
+   **Issue:** The POM file contains several critical misconfigurations. The Spring Boot version '4.0.0' is invalid, the Java version '25' is a non-existent GA release, and the Spring Cloud version '2025.1.0' is not a valid release train name. These will prevent the project from building correctly.
+   **Key Symbols:**
+   - `spring-boot-starter-parent.version`
+   - `java.version`
+   - `spring-cloud.version`
+
+**14. File:** `SearchEngine-MicroService/Dockerfile`
+   **Issue:** The Dockerfile uses an early access, non-production-ready Java 25 base image. This is unsuitable for a production environment and should be replaced with a stable Long-Term Support (LTS) version like Java 17 or 21. It also lacks a multi-stage build, which is a best practice for creating smaller, more secure images.
+   **Key Symbols:**
+   - `FROM openjdk:25-ea-jdk`
+
+**15. File:** `SearchEngine-MicroService/src/main/resources/application.properties`
+   **Issue:** The application properties use deprecated AWS credential properties (`cloud.aws.*` instead of `spring.cloud.aws.*`). It also enables the GraphiQL interface, which is a potential security risk if exposed in a production environment.
+   **Key Symbols:**
+   - `cloud.aws.credentials.access-key`
+   - `spring.graphql.graphiql.enabled`
+
+**16. File:** `SearchEngine-MicroService/src/main/java/com/example/SearchEngine_MicroService/Config/ElasticsearchConfig.java`
+   **Issue:** This file manually configures the Elasticsearch client. The current implementation does not include any authentication mechanism. If the target Elasticsearch cluster requires credentials, the application will fail to connect.
+   **Key Symbols:**
+   - `ElasticsearchClient`
+
+**17. File:** `SearchEngine-MicroService/src/main/java/com/example/SearchEngine_MicroService/Config/VirtualThreadConfig.java`
+   **Issue:** The use of virtual threads requires Java 21 or newer. This is inconsistent with the Java version specified in the `pom.xml` and the base image in the `Dockerfile`.
+   **Key Symbols:**
+   - `Executors.newVirtualThreadPerTaskExecutor()`
+---
+**Fifth Analysis Summary:**
+My investigation was interrupted before completion. Based on the partial analysis of the `Security-MicroService`, I found critical issues that will prevent the application from building and running correctly. The `pom.xml` has invalid Java, Spring Boot, and Spring Cloud versions. The `application.properties` and `SecurityConfig.java` contain hardcoded URLs that will cause problems across different deployment environments. The `Dockerfile` uses an unstable JDK and follows poor security practices. The analysis of the `YT-AI-MicroService` and `YT-S3-Microservice` could not be started. A full review of all services is necessary to identify all issues.
+
+---
+**Additional Issues Found:**
+
+**18. File:** `Security-MicroService/pom.xml`
+   **Issue:** The `pom.xml` file contains multiple configuration errors that will prevent the project from building successfully. The Java version is set to '25', which is invalid. The Spring Boot parent version ('3.5.8') and Spring Cloud version ('2025.0.0') are non-existent and will cause dependency resolution failures. Additionally, there are other dependency version and plugin configuration issues.
+   **Key Symbols:**
+   - `project.properties.java.version`
+   - `project.parent.version`
+   - `project.properties.spring-cloud.version`
+
+**19. File:** `Security-MicroService/src/main/resources/application.properties`
+   **Issue:** The configuration file contains a hardcoded redirect URI for Google OAuth2. This will break authentication in any environment other than localhost. This value should be externalized and supplied via an environment variable.
+   **Key Symbols:**
+   - `spring.security.oauth2.client.registration.google.redirect-uri`
+
+**20. File:** `Security-MicroService/Dockerfile`
+   **Issue:** The Dockerfile uses an early-access, non-production-ready JDK version as its base image (`openjdk:25-ea-jdk`). This is highly unstable and a security risk. The container also runs the application as the 'root' user and lacks a multi-stage build, which are deviations from security and efficiency best practices.
+   **Key Symbols:**
+   - `FROM openjdk:25-ea-jdk`
+
+**21. File:** `Security-MicroService/src/main/java/com/example/SecurityMicroService/Config/SecurityConfig.java`
+   **Issue:** This configuration class contains a hardcoded redirect URL (`http://localhost:5173/`) in the logout success handler, making it unsuitable for different deployment environments. There is also a persistent typo in the `CoustomUserDetailsService` class name, which affects readability and maintainability.
+   **Key Symbols:**
+   - `onLogoutSuccess`
+   - `CoustomUserDetailsService`
+---
+**Sixth Analysis Summary:**
+The investigation was interrupted and is incomplete. The analysis of `YT-S3-Microservice` was not started. However, the analysis of `YT-AI-MicroService` revealed critical issues. The service is fundamentally broken due to invalid dependency versions in its `pom.xml` (Java, Spring Boot, Spring Cloud). The `Dockerfile` also relies on an unstable early-access JDK. While the application logic has some minor code quality issues, the primary blockers are in the build and container configuration. The `YT-S3-Microservice` still requires a full investigation.
+
+---
+**Additional Issues Found:**
+
+**22. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/YT-AI-MicroService/pom.xml`
+   **Issue:** Contains multiple critical errors, including invalid and non-existent versions for Java (25), Spring Boot ('3.5.8'), and Spring Cloud ('2025.0.0'). These errors will prevent the project from building and indicate a fundamental misconfiguration.
+   **Key Symbols:**
+   - `java.version`
+   - `spring-boot-starter-parent.version`
+   - `spring-cloud.version`
+
+**23. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/YT-AI-MicroService/Dockerfile`
+   **Issue:** The Docker image is based on an Early Access (unstable) version of the JDK. This is not suitable for a production environment and poses a significant stability and security risk.
+   **Key Symbols:**
+   - `FROM openjdk:25-ea-jdk`
+
+**24. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/YT-AI-MicroService/src/main/resources/application.properties`
+   **Issue:** Contains non-standard properties (`spring.ai.chat.client.enabled`) that will be ignored by the framework, and 'naked' properties (`SEARCH_URL`) that do not follow best practices for configuration naming, which can lead to conflicts.
+   **Key Symbols:**
+   - `spring.ai.chat.client.enabled`
+   - `SEARCH_URL`
+
+**25. File:** `/home/pancham-ayush/IdeaProjects/Song-Player---Spring-Boot/YT-AI-MicroService/src/main/java/com/example/ai/AI/AIService.java`
+   **Issue:** Exhibits several minor issues, including unconventional package structure, violation of Java naming conventions for fields and methods (e.g., 'MistralAiChatModel' should be 'mistralAiChatModel'), and redundant code.
+   **Key Symbols:**
+   - `AIService`
+   - `MistralAiChatModel`
+   - `AiSongMapping`
+---
+**Seventh Analysis Summary:**
+The investigation of the `YT-S3-Microservice` was interrupted. However, a review of the configuration files (`pom.xml`, `application.properties`, `Dockerfile`) and AWS configuration code has already revealed critical issues. The project suffers from fundamental build errors due to invalid Java, Spring Boot, and Spring Cloud versions in the `pom.xml`. There is a major security vulnerability with a hardcoded API key in `application.properties`. Furthermore, the AWS integration is handled via manual client configuration using basic credentials, which is insecure and a result of a missing dependency. The `Dockerfile` is also misconfigured and insecure. A full review of the controllers, services, and other components is necessary to identify logical errors and other potential vulnerabilities, but the existing findings are sufficient to declare the service non-functional and insecure in its current state.
+
+---
+**Additional Issues Found:**
+
+**26. File:** `YT-S3-Microservice/pom.xml`
+   **Issue:** Contains multiple configuration errors that will prevent the application from building or running correctly. The Java version '25' is invalid, the Spring Boot and Spring Cloud versions do not exist, and there are dependency issues with JWT (duplicate API, missing implementation). It also lacks the standard Spring Cloud AWS starter, forcing manual AWS client configuration.
+   **Key Symbols:**
+   - `java.version`
+   - `spring-boot-starter-parent.version`
+   - `spring-cloud.version`
+   - `jjwt-api`
+
+**27. File:** `YT-S3-Microservice/src/main/resources/application.properties`
+   **Issue:** This file contains a hardcoded API key for Mistral AI, which is a significant security vulnerability. It also uses deprecated and incorrect property keys for AWS configuration (`cloud.aws.*`), which forces the use of manual client configuration.
+   **Key Symbols:**
+   - `spring.ai.mistralai.api-key`
+   - `cloud.aws.credentials.access-key`
+   - `aws.bucket`
+
+**28. File:** `YT-S3-Microservice/Dockerfile`
+   **Issue:** The Dockerfile references a non-existent Java 25 base image, which will fail during the build. It also violates security best practices by running the application as the `root` user and lacks a `HEALTHCHECK` instruction for monitoring. It would also benefit from a more efficient multi-stage build.
+   **Key Symbols:**
+   - `FROM eclipse-temurin:25-jdk-jammy`
+   - `RUN`
+   - `ENTRYPOINT`
+
+**29. File:** `YT-S3-Microservice/src/main/java/com/example/YT_S3_MicroService/Config/S3Config.java`
+   **Issue:** This class manually configures the AWS S3 client. It relies on `AwsBasicCredentials`, which is not a recommended practice for production environments. A more secure approach like using `DefaultAWSCredentialsProviderChain` (which can use IAM roles) should be preferred. This manual setup is a direct consequence of the missing Spring Cloud AWS starter in `pom.xml`.
+   **Key Symbols:**
+   - `S3AsyncClient`
+   - `AwsBasicCredentials`
+
+**30. File:** `YT-S3-Microservice/src/main/java/com/example/YT_S3_MicroService/Config/DynamoDBEnhancedConfig.java`
+   **Issue:** Similar to the S3 configuration, this class manually configures the DynamoDB client using insecure `AwsBasicCredentials`, making it unsuitable for production.
+   **Key Symbols:**
+   - `DynamoDbEnhancedClient`
+   - `AwsBasicCredentials`

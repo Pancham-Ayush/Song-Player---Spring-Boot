@@ -1,5 +1,7 @@
 package com.example.apigateway;
 
+import com.example.apigateway.Filter.AdminCheckFilter;
+import com.example.apigateway.Filter.JwtCookieFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -18,14 +20,14 @@ public class ApiRouterConfig {
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtCookieFilter jwtFilter) {
         return builder.routes()
 //                -------------------------------------------------
-                .route("song-player",r-> r
+                .route("song-player", r -> r
                         .path("/play/**")
                         .filters(f -> f.stripPrefix(1).filter(jwtFilter))
                         .uri("lb://PLAYER-SERVICE"))
 //                ---------------------------------------------------
-                .route("search",r -> r
+                .route("search", r -> r
                         .path("/search/**")
-                        .filters( f -> f.stripPrefix(1).filter(jwtFilter))
+                        .filters(f -> f.stripPrefix(1).filter(jwtFilter))
                         .uri("lb://SEARCHENGINE-MICROSERVICE"))
 //                ---------------------------------------------------
                 .route("ai-service-route", r -> r
@@ -33,7 +35,7 @@ public class ApiRouterConfig {
                         .filters(f -> f.stripPrefix(1).filter(jwtFilter))
                         .uri("lb://YT-AI"))
 //                ---------------------------------------------------
-                .route("security",r -> r
+                .route("security", r -> r
                         .path("/auth/**")
                         .filters(f -> f.stripPrefix(1))
                         .uri("lb://SECURITY-MICROSERVICE"))

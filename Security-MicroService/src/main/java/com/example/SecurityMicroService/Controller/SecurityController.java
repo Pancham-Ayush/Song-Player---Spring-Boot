@@ -7,6 +7,7 @@ import com.example.SecurityMicroService.SpringSecurity.CoustomUserDetails;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,19 +44,22 @@ public class SecurityController {
         this.virtualThreadExecutor = virtualThreadExecutor;
     }
 
-    @PostMapping("/manual-create-user")
-    public ResponseEntity<String> createUser(@RequestBody User user) {
+    @PostMapping("/register")
+    public ResponseEntity<String> createUser(@RequestBody @Valid User user) {
 
         user.setRole("USER");
         User create_user = authService.createUser(user);
         if (create_user != null) {
-            return ResponseEntity.ok("Created Successfully");
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body("Created Successfully");
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Invalid User Exist");
     }
 
-
-    @PostMapping("/manual-login")
+    @PostMapping("/login")
     public ResponseEntity<Object> manualLogin(@RequestBody Map<String, String> request, HttpServletResponse httpServletResponse, HttpServletRequest httpServletRequest) throws ExecutionException, InterruptedException {
         Future<ResponseEntity<Object>> future = ((ExecutorService) virtualThreadExecutor)
                 .submit(() -> {

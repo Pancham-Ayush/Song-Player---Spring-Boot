@@ -1,10 +1,8 @@
-package com.example.apigateway;
+package com.example.apigateway.Filter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,9 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.concurrent.Executor;
 
 @Component
 public class JwtCookieFilter implements GatewayFilter {
@@ -52,7 +50,7 @@ public class JwtCookieFilter implements GatewayFilter {
             String email = claims.get("email").toString();
             String role = claims.get("role").toString();
 
-            ServerWebExchange mutated = exchange.mutate().request( r -> r
+            ServerWebExchange mutated = exchange.mutate().request(r -> r
                     .header("X-User-Email", email)
                     .header("X-User-Role", role)).build();
             return chain.filter(mutated);

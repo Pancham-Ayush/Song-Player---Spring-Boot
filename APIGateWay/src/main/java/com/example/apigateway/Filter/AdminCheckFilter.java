@@ -1,4 +1,4 @@
-package com.example.apigateway;
+package com.example.apigateway.Filter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+
 @Component
 public class AdminCheckFilter implements GatewayFilter {
 
@@ -51,11 +52,11 @@ public class AdminCheckFilter implements GatewayFilter {
             }
 
             String email = claims.get("email", String.class);
-            String  role = claims.get("role", String.class);
+            String role = claims.get("role", String.class);
 
-            ServerWebExchange mutated = exchange.mutate().request( r -> r
-                            .header("X-User-Email", email)
-                            .header("X-User-Role", role)).build();
+            ServerWebExchange mutated = exchange.mutate().request(r -> r
+                    .header("X-User-Email", email)
+                    .header("X-User-Role", role)).build();
 
             return chain.filter(mutated);
 

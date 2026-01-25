@@ -35,7 +35,6 @@ public class AuthService {
             return user;
         } else
             return null;
-
     }
 
     public Map<String, String> getEmail_RoleFromCookie(HttpServletRequest request) {
