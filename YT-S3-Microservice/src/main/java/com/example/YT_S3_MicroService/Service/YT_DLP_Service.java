@@ -2,7 +2,6 @@ package com.example.YT_S3_MicroService.Service;
 
 import com.example.YT_S3_MicroService.Kafka.KafkaElasticSearchAdditionReq;
 import com.example.YT_S3_MicroService.Model.Song;
-
 import com.example.YT_S3_MicroService.Repository.SongRepo;
 import com.example.YT_S3_MicroService.ServerSentEvent.SSE_Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,22 +25,15 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class YT_DLP_Service {
 
-    @Value("${file.upload-dir}")
-    private String uploadDir;
-
+    private final SongRepo songRepo;
+    private final S3AsyncClient s3AsyncClient;
+    private final KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq;
+    private final ObjectMapper objectMapper;
+    private final SSE_Service sseService;
     @Value("${aws.bucket}")
     String bucket;
-
-    private final SongRepo songRepo;
-
-
-    private final S3AsyncClient s3AsyncClient;
-
-    private final KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq;
-
-    private final ObjectMapper objectMapper;
-
-    private final SSE_Service sseService;
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     public YT_DLP_Service(SongRepo songRepo, S3AsyncClient s3AsyncClient, KafkaElasticSearchAdditionReq kafkaElasticSearchAdditionReq, ObjectMapper objectMapper, SSE_Service sseService) {
         this.songRepo = songRepo;
@@ -49,6 +41,21 @@ public class YT_DLP_Service {
         this.kafkaElasticSearchAdditionReq = kafkaElasticSearchAdditionReq;
         this.objectMapper = objectMapper;
         this.sseService = sseService;
+    }
+
+    private static Process getProcess(String videoUrl, String tempOutputPath) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(
+                "yt-dlp",
+                "-x", "--audio-format", "opus",
+                "--audio-quality", "0",
+                "--prefer-ffmpeg",
+                "--ffmpeg-location", "/usr/bin/ffmpeg",
+                "--force-overwrites",
+                "-o", tempOutputPath,
+                videoUrl
+        );
+        pb.redirectErrorStream(true);
+        return pb.start();
     }
 
     public CompletableFuture<Void> uploadYoutubeAudioAsync(String videoUrl, Song song, String Email) {
@@ -62,7 +69,7 @@ public class YT_DLP_Service {
                 Process process = getProcess(videoUrl, tempOutputPath);
                 (new Thread(() -> {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                        while(reader.readLine() != null) {
+                        while (reader.readLine() != null) {
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -82,7 +89,7 @@ public class YT_DLP_Service {
 
                 }
 
-                PutObjectRequest putRequest = (PutObjectRequest)PutObjectRequest.builder().bucket(this.bucket)
+                PutObjectRequest putRequest = (PutObjectRequest) PutObjectRequest.builder().bucket(this.bucket)
                         .key(fileName)
                         .contentType("audio/opus")
                         .contentLength(downloadedFile.length())
@@ -95,10 +102,10 @@ public class YT_DLP_Service {
                             song.setPath(fileName);
                             song.setSize(downloadedFile.length());
                             this.songRepo.saveSong(song);
-                            String openSearchSong_Json =objectMapper.writeValueAsString(song);
+                            String openSearchSong_Json = objectMapper.writeValueAsString(song);
                             kafkaElasticSearchAdditionReq.sendMessage(openSearchSong_Json);
                             log.info("Successfully uploaded Youtube Audio File");
-                            sseService.sendUser(Email, "++++ Successfully uploaded Youtube Audio File ++++");
+                            sseService.sendUser(Email, song);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -126,30 +133,17 @@ public class YT_DLP_Service {
     }
 
     CompletableFuture<PutObjectResponse> UploadASYNC(String path, MultipartFile file) throws IOException {
-        PutObjectRequest putObjectRequest = (PutObjectRequest)PutObjectRequest.builder().bucket(this.bucket).key(path).contentType(file.getContentType()).build();
+        PutObjectRequest putObjectRequest = (PutObjectRequest) PutObjectRequest.builder().bucket(this.bucket).key(path).contentType(file.getContentType()).build();
         return this.s3AsyncClient.putObject(putObjectRequest, AsyncRequestBody.fromBytes(file.getBytes()));
     }
-    private static Process getProcess(String videoUrl, String tempOutputPath) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp",
-                "-x", "--audio-format", "opus",
-                "--audio-quality", "0",
-                "--prefer-ffmpeg",
-                "--ffmpeg-location", "/usr/bin/ffmpeg",
-                "--force-overwrites",
-                "-o", tempOutputPath,
-                videoUrl
-        );
-        pb.redirectErrorStream(true);
-        return pb.start();
-    }
+
     public Song manualAdd(Song song, MultipartFile file) {
         try {
-            String fileName = System.currentTimeMillis()+Math.random()+ "_" + file.getOriginalFilename();
+            String fileName = System.currentTimeMillis() + Math.random() + "_" + file.getOriginalFilename();
             song.setPath(fileName);
             song.setSize(file.getSize());
             this.UploadASYNC(fileName, file);
-            String openSearchSong_Json =objectMapper.writeValueAsString(song);
+            String openSearchSong_Json = objectMapper.writeValueAsString(song);
             kafkaElasticSearchAdditionReq.sendMessage(openSearchSong_Json);
             return this.songRepo.saveSong(song);
         } catch (Exception var4) {

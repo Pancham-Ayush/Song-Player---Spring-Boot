@@ -1,41 +1,35 @@
-
 package com.example.ai.Service;
 
-import com.example.ai.AI.AIService;
 import com.example.ai.Feign.YoutubeSearchClient;
 import com.example.ai.Model.YoutubeVideo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 @Slf4j
 @Service
 public class SearchYTService {
+    private final YoutubeSearchClient youtubeSearchClient;
     @Value("${SEARCH_URL}")
     private String SEARCH_URL;
     @Value("${youtube.api.key}")
     private String apiKey;
 
-    private final AIService aiService;
-
-    private final YoutubeSearchClient  youtubeSearchClient;
-
-    public SearchYTService(AIService aiService, YoutubeSearchClient youtubeSearchClient) {
-        this.aiService = aiService;
+    public SearchYTService(YoutubeSearchClient youtubeSearchClient) {
         this.youtubeSearchClient = youtubeSearchClient;
     }
+
     public Map<String, Object> search(String search, String pageToken) {
-        String url = this.SEARCH_URL;
         if (pageToken == null || pageToken.isEmpty()) {
-            pageToken=null;
+            pageToken = null;
         }
         log.info(Thread.currentThread().getName());
         String response = youtubeSearchClient.ytSearchCall(
@@ -55,10 +49,11 @@ public class SearchYTService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+        if (root == null)
+            throw new RuntimeException("Error json Parsing error");
+        List<YoutubeVideo> yt = new ArrayList<>();
 
-        List<YoutubeVideo> yt = new ArrayList();
-
-        for(JsonNode item : root.path("items")) {
+        for (JsonNode item : root.path("items")) {
             String title = item.path("snippet").path("title").asText();
             String videoId = item.path("id").path("videoId").asText();
 
@@ -72,7 +67,7 @@ public class SearchYTService {
 
         String nextPageId = root.path("nextPageToken").asText();
         String prevPageId = root.path("prevPageToken").asText();
-        Map<String, Object> map = new HashMap();
+        Map<String, Object> map = new HashMap<>();
         map.put("nextPageToken", nextPageId);
         map.put("prevPageToken", prevPageId);
         map.put("yt", yt);

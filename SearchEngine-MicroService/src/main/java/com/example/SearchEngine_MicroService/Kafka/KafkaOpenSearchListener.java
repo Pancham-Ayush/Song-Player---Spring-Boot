@@ -1,7 +1,7 @@
 package com.example.SearchEngine_MicroService.Kafka;
 
-import com.example.SearchEngine_MicroService.Service.ElasticSearchService;
 import com.example.SearchEngine_MicroService.Model.Song;
+import com.example.SearchEngine_MicroService.Service.ElasticSearchService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ public class KafkaOpenSearchListener {
 
     private final ElasticSearchService elasticSearchService;
 
-    public KafkaOpenSearchListener( ObjectMapper objectMapper,  ElasticSearchService elasticSearchService ) {
+    public KafkaOpenSearchListener(ObjectMapper objectMapper, ElasticSearchService elasticSearchService) {
         this.objectMapper = objectMapper;
         this.elasticSearchService = elasticSearchService;
     }
@@ -25,8 +25,7 @@ public class KafkaOpenSearchListener {
             // Convert JSON to Song object
             Song song = objectMapper.readValue(songJson, Song.class);
             elasticSearchService.uploadSong(song);
-
+        } catch (Exception e) {
         }
-        catch (Exception e) {}
     }
 }

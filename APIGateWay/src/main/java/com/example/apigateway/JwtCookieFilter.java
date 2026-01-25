@@ -1,6 +1,5 @@
 package com.example.apigateway;
 
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -23,9 +22,7 @@ public class JwtCookieFilter implements GatewayFilter {
     @Value("${JWT.secret.key}")
     String secretKey;
 
-    @Qualifier("Virtual")
-    @Autowired
-    Executor executor;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 

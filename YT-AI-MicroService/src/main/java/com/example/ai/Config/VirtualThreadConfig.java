@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class VirtualThreadConfig {
+
     @Bean("Virtual")
     public Executor getExecutorService() {
         return Executors.newVirtualThreadPerTaskExecutor();

@@ -1,8 +1,6 @@
-
 package com.example.ai.AI;
 
 import com.example.ai.DTO.SONG_YT_DTO;
-
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -12,12 +10,12 @@ public class AIService {
 
     private final ChatClient MistralAiChatModel;
 
-    public AIService(@Qualifier("myMistralChatModel")ChatClient MistralAiChatModel) {
+    public AIService(@Qualifier("myMistralChatModel") ChatClient MistralAiChatModel) {
         this.MistralAiChatModel = MistralAiChatModel;
     }
 
     public boolean AISongVerification(String message) {
-        res r = (res)this.MistralAiChatModel
+        res r = (res) this.MistralAiChatModel
                 .prompt()
                 .system("You are a verification assistant.\nGiven the input text containing title, description, artist/singer, and optionally a link,\ndecide whether the content represents any kind of music-related material such as\na song, music video, folklore performance, pop song , rock music, spiritual song or any type of beat.\nand if its a short or reel  its not a song\n\nRespond only with a single word:\n\"true\" if it is music-related,\n\"false\" if it is not.\n")
                 .user(message)
@@ -42,5 +40,6 @@ public class AIService {
         }
     }
 
-    static record res(boolean b) {}
+    record res(boolean b) {
+    }
 }

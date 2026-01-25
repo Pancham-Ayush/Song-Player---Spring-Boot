@@ -7,16 +7,15 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
 public class S3Config {
-    @Value("${cloud.aws.region.static}")
-    private String region;
     @Value("${cloud.aws.credentials.access-key}")
     String accessKey;
     @Value("${cloud.aws.credentials.secret-key}")
     String secretKey;
+    @Value("${cloud.aws.region.static}")
+    private String region;
 
     @Bean
     public S3AsyncClient s3Client() {

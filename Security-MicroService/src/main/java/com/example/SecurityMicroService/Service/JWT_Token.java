@@ -11,8 +11,6 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 
-
-
 @Service
 public class JWT_Token {
 
@@ -20,10 +18,10 @@ public class JWT_Token {
     String secretKey;
 
     public String getSecretToken(String email, String role) {
-        long expiry = System.currentTimeMillis() +(1000*60*60*24);
+        long expiry = System.currentTimeMillis() + (1000 * 60 * 60 * 24);
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("email",email);
-        claims.put("role",role);
+        claims.put("email", email);
+        claims.put("role", role);
 
         Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
 
@@ -36,7 +34,7 @@ public class JWT_Token {
     }
 
 
-    public HashMap<String,String> getEmail_RoleFromToken(String token) {
+    public HashMap<String, String> getEmail_RoleFromToken(String token) {
         Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
 
         Claims claims = Jwts.parserBuilder()
@@ -45,9 +43,9 @@ public class JWT_Token {
                 .parseClaimsJws(token)
                 .getBody();
 
-        HashMap<String,String> response = new HashMap<>();
-        response.put("email",claims.get("email", String.class));
-        response.put("role",claims.get("role", String.class));
+        HashMap<String, String> response = new HashMap<>();
+        response.put("email", claims.get("email", String.class));
+        response.put("role", claims.get("role", String.class));
         return response;
 
     }

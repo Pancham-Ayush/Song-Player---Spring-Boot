@@ -1,18 +1,14 @@
 package com.example.YT_S3_MicroService.ServerSentEvent;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import com.example.YT_S3_MicroService.Model.Song;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -26,7 +22,6 @@ public class SSE_Service {
 
     public SseEmitter addUser(HttpServletRequest request) {
         String email = request.getHeader("X-User-Email");
-    System.out.println("email++++++: " + email);
         SseEmitter emitter = new SseEmitter(0L);
 
         emitters
@@ -40,6 +35,7 @@ public class SSE_Service {
         return emitter;
 
     }
+
     private void removeEmitter(String email, SseEmitter emitter) {
         List<SseEmitter> list = emitters.get(email);
         if (list != null) {
@@ -49,9 +45,9 @@ public class SSE_Service {
             }
         }
     }
+
     @SneakyThrows
-    public void sendUser(String email, String message) {
-        System.out.println("email++++++: " + email);
+    public void sendUser(String email, Song message) {
         List<SseEmitter> list = emitters.get(email);
         for (SseEmitter emitter : list) {
             try {

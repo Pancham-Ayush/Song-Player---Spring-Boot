@@ -1,10 +1,10 @@
-package com.example.MCP.Server;
+package com.example.Orchestrator;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class McpServerApplicationTests {
+class OrchestratorApplicationTests {
 
 	@Test
 	void contextLoads() {

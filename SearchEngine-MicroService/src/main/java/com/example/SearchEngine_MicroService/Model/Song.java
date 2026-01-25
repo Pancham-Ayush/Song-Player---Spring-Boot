@@ -1,6 +1,5 @@
 package com.example.SearchEngine_MicroService.Model;
 
-
 import lombok.*;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -13,7 +12,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 @DynamoDbBean
 public class Song {
 
-    String id ;
+    String id;
     String name;
     String artist;
     String genre;
@@ -22,7 +21,7 @@ public class Song {
     Long size;
 
     @DynamoDbPartitionKey
-    public String getId(){
+    public String getId() {
         return id;
     }
 

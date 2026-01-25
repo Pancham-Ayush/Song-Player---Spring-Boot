@@ -1,19 +1,17 @@
-
 package com.example.SearchEngine_MicroService.Repo;
-
 
 import com.example.SearchEngine_MicroService.Model.Playlist;
 import com.example.SearchEngine_MicroService.Model.Song;
 import jakarta.annotation.PostConstruct;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 public class PlaylistRepo {
@@ -21,9 +19,10 @@ public class PlaylistRepo {
     private final DynamoDbEnhancedClient client;
     private DynamoDbTable<Playlist> playlistTable;
 
-    public  PlaylistRepo(DynamoDbEnhancedClient client) {
+    public PlaylistRepo(DynamoDbEnhancedClient client) {
         this.client = client;
     }
+
     @PostConstruct
     void init() {
         this.playlistTable = this.client.table("Playlist", TableSchema.fromBean(Playlist.class));
@@ -35,7 +34,7 @@ public class PlaylistRepo {
     }
 
     public Optional<Playlist> findById(String id) {
-        return Optional.ofNullable((Playlist)this.playlistTable.getItem((r) -> r.key((k) -> k.partitionValue(id))));
+        return Optional.ofNullable((Playlist) this.playlistTable.getItem((r) -> r.key((k) -> k.partitionValue(id))));
     }
 
     public List<Playlist> findPlaylistsByUserEmail(String email) {
@@ -61,17 +60,5 @@ public class PlaylistRepo {
                 .collect(Collectors.toList());
 
         modifiedPlaylists.forEach(playlistTable::updateItem);
-    }
-
-    public List<Playlist> findAll() {
-        return (List)this.playlistTable.scan().items().stream().collect(Collectors.toList());
-    }
-
-    public List<Playlist> getAllPlaylistsByEmail(String email) {
-        return this.findPlaylistsByUserEmail(email);
-    }
-
-    public List<Playlist> getPublicPlaylists() {
-        return this.findPlaylistsByPublicplaylist("true");
     }
 }

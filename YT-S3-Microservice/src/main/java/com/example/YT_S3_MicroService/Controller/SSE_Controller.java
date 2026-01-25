@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequestMapping("/notification")
 public class SSE_Controller {
-    private SSE_Service sseService;
+    private final SSE_Service sseService;
 
     public SSE_Controller(SSE_Service sseService) {
         this.sseService = sseService;

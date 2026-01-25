@@ -20,7 +20,7 @@ public class ApiRouterConfig {
 //                -------------------------------------------------
                 .route("song-player",r-> r
                         .path("/play/**")
-                        .filters(f -> f.stripPrefix(1))
+                        .filters(f -> f.stripPrefix(1).filter(jwtFilter))
                         .uri("lb://PLAYER-SERVICE"))
 //                ---------------------------------------------------
                 .route("search",r -> r

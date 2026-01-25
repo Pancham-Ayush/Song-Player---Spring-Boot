@@ -2,10 +2,7 @@ package com.example.YT_S3_MicroService.ObjMapper;
 
 import com.example.YT_S3_MicroService.DTO.SONG_YT_DTO;
 import com.example.YT_S3_MicroService.Model.Song;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Component
 public class YT_Dto_to_Song {

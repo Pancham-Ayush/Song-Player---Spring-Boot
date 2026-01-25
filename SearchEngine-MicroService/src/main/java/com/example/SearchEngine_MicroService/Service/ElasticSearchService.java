@@ -18,10 +18,9 @@ import java.util.List;
 @Service
 public class ElasticSearchService {
 
+    private final ElasticsearchClient elasticsearchClient;
     @Value("${elasticsearch.index}")
     private String indexName;
-
-    private final ElasticsearchClient elasticsearchClient;
 
     public ElasticSearchService(ElasticsearchClient elasticsearchClient) {
         this.elasticsearchClient = elasticsearchClient;

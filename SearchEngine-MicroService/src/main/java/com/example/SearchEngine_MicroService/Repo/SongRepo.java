@@ -28,8 +28,7 @@ public class SongRepo {
 
     @PostConstruct
     void init() {
-        table=client.table("Song", TableSchema.fromBean(Song.class));
-
+        table = client.table("Song", TableSchema.fromBean(Song.class));
     }
 
     public Optional<Song> findById(String id) {
@@ -39,12 +38,6 @@ public class SongRepo {
     public Song deleteSong(String id) {
         return table.deleteItem(r -> r.key(Key.builder().partitionValue(id).build()));
     }
-
-    public Song saveSong(Song song) {
-        table.putItem(song);
-        return song;
-    }
-
 
     public SongPage findAll(String lastId, int chunkSize) {
         ScanEnhancedRequest.Builder builder = ScanEnhancedRequest.builder()

@@ -8,13 +8,11 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,7 +36,7 @@ public class SecurityController {
 
     private final Executor virtualThreadExecutor;
 
-    public SecurityController(AuthenticationManager authenticationManager, JWT_Token jwtToken,AuthService authService, Executor virtualThreadExecutor) {
+    public SecurityController(AuthenticationManager authenticationManager, JWT_Token jwtToken, AuthService authService, Executor virtualThreadExecutor) {
         this.authenticationManager = authenticationManager;
         this.jwtToken = jwtToken;
         this.authService = authService;
@@ -47,7 +45,7 @@ public class SecurityController {
 
     @PostMapping("/manual-create-user")
     public ResponseEntity<String> createUser(@RequestBody User user) {
-        log.info("Creating user {}", user);
+
         user.setRole("USER");
         User create_user = authService.createUser(user);
         if (create_user != null) {
@@ -77,6 +75,7 @@ public class SecurityController {
                     boolean admin_role = role.equals("ADMIN");
                     Cookie cookie = new Cookie("jwt", token);
                     cookie.setHttpOnly(true);
+                    cookie.setSecure(true);
                     cookie.setPath("/");
                     cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
                     httpServletResponse.addCookie(cookie);

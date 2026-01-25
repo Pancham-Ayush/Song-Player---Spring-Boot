@@ -2,21 +2,16 @@ package com.example.SecurityMicroService.Service;
 
 import com.example.SecurityMicroService.Model.User;
 import com.example.SecurityMicroService.Repository.UserRepo;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -62,6 +57,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                         String token = jwtToken.getSecretToken(email, user.getRole());
                         Cookie cookie = new Cookie("jwt", token);
                         cookie.setHttpOnly(true);
+                        cookie.setSecure(true);
                         cookie.setPath("/");
                         cookie.setMaxAge(7 * 24 * 60 * 60);
                         response.addCookie(cookie);
@@ -74,10 +70,10 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                                         "</script>" +
                                         "</body></html>"
                         );
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 });
-       future.get();
+        future.get();
     }
 }

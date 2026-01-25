@@ -4,8 +4,8 @@ import com.example.SecurityMicroService.Model.User;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class UserRepo {
@@ -26,7 +26,4 @@ public class UserRepo {
         return userTable.getItem(key);
     }
 
-    public boolean existsByEmail(String email) {
-        return findByEmail(email) != null;
-    }
 }

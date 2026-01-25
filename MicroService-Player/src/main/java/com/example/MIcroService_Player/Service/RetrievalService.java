@@ -3,7 +3,6 @@ package com.example.MIcroService_Player.Service;
 import com.example.MIcroService_Player.Model.Song;
 import com.example.MIcroService_Player.Repo.SongRepo;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -18,28 +17,32 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-
 import java.io.IOException;
 
 @Slf4j
 @Service
 public class RetrievalService {
-    @Autowired
-    S3Client s3Client;
-    @Autowired
-    RedisService redisService;
-    @Autowired
-    SongRepo songRepo;
+
+    private final S3Client s3Client;
+
+    private final RedisService redisService;
+
+    private final SongRepo songRepo;
+
     @Value("${song.stream.chunk-size}")
     Long chunkSize;
+
     @Value("${aws.bucket}")
     String bucket;
 
-
+    public RetrievalService(S3Client s3Client, RedisService redisService, SongRepo songRepo) {
+        this.s3Client = s3Client;
+        this.redisService = redisService;
+        this.songRepo = songRepo;
+    }
     public ResponseEntity<Resource> getSong(@PathVariable("songid") String songid, @RequestHeader(value = "Range", required = false) String range) throws IOException {
         Long cur = System.currentTimeMillis();
         Song song = redisService.get(songid);
-        System.out.println("---------------"+Thread.currentThread()+"----------------");
         if (song != null) {
             log.info("From Redis Cache");
         } else {

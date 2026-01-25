@@ -16,7 +16,7 @@ public class GraphQL_Controller {
     }
 
     @QueryMapping
-    public SongPage songsList(@Argument String cursor, @Argument Integer chunkSize) {
+    public SongPage getAllSongs(@Argument String cursor, @Argument Integer chunkSize) {
         return songRepo.findAll(cursor, chunkSize);
     }
 }

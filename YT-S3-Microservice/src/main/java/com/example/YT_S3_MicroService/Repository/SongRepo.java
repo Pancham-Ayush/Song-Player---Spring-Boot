@@ -7,7 +7,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-
 @Repository
 public class SongRepo {
 
@@ -21,8 +20,7 @@ public class SongRepo {
 
     @PostConstruct
     void init() {
-        table=client.table("Song", TableSchema.fromBean(Song.class));
-
+        table = client.table("Song", TableSchema.fromBean(Song.class));
     }
 
     public Song saveSong(Song song) {

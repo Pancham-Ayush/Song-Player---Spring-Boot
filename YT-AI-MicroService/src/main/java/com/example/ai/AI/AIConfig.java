@@ -1,4 +1,3 @@
-
 package com.example.ai.AI;
 
 import org.springframework.ai.chat.client.ChatClient;
