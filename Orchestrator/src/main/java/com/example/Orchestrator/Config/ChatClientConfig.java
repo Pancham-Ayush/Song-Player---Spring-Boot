@@ -1,4 +1,4 @@
-package com.example.Orchestrator;
+package com.example.Orchestrator.Config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
