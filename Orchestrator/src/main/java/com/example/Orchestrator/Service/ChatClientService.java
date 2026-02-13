@@ -1,24 +1,35 @@
 package com.example.Orchestrator.Service;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 @Service
 public class ChatClientService {
 
-    private final ChatClient chatClient;
+    ChatClient chatClient;
 
-    public ChatClientService(ChatClient.Builder builder) {
-        this.chatClient = builder
-                .defaultAdvisors(new SimpleLoggerAdvisor())
-                .build();
+    ChatMemory chatMemory;
+
+
+    private ChatClientService(@Qualifier("openai") ChatClient chatClient, ChatMemory chatMemory) {
+        this.chatClient = chatClient;
+        this.chatMemory = chatMemory;
     }
 
-    public String aiResponse(String ques) {
+    public Flux<String> aiResponse(String ques, String id) {
+
         return chatClient
-                .prompt(ques)
-                .call()
+                .prompt()
+                .user(ques)
+                .advisors(a -> {
+                    a.param(ChatMemory.CONVERSATION_ID, id);
+                })
+                .stream()
                 .content();
+
     }
+
 }
