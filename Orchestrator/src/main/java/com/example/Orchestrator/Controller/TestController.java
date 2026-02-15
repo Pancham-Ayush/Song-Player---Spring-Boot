@@ -29,11 +29,6 @@ public class TestController {
     @Autowired
     UserChatHistoryRepo chatHistoryRepository;
 
-    @GetMapping("/chat")
-    Flux<String> sendMessage(@RequestParam String q) {
-        String Email = "1";
-        return chatClientService.aiResponse(q, Email).delayElements(Duration.ofSeconds(1)).log();
-    }
 
     @GetMapping(value = "/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     Flux<SpringAiChatMemory> test() {
@@ -48,7 +43,7 @@ public class TestController {
 
 
     @GetMapping(value = "/test2", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<UserChatHistory> test2() {
+    public Mono<?> test2() {
         return chatHistoryRepository.save(
                 UserChatHistory.builder()
 //                        .id(5L)
@@ -56,10 +51,7 @@ public class TestController {
                         .chatId("5")
                         .message("hi")
                         .createdAt(LocalDateTime.now())
-                        .build()
-
-        );
+                        .build()).delayElement(Duration.ofSeconds(3)).log();
     }
-
 
 }
