@@ -19,6 +19,10 @@ public class ApiRouterConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtCookieFilter jwtFilter) {
         return builder.routes()
+                .route("song-player", r -> r
+                        .path("/chat/**")
+                        .filters(f -> f.stripPrefix(1).filter(jwtFilter))
+                        .uri("lb://Orchestrator"))
 //                -------------------------------------------------
                 .route("song-player", r -> r
                         .path("/play/**")
