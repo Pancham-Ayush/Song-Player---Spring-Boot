@@ -53,12 +53,10 @@ public class YoutubeController {
     public ResponseEntity<Object> download(@RequestBody YoutubeVideo youtubeVideo, HttpServletRequest request) throws JsonProcessingException, ExecutionException, InterruptedException {
         Future<ResponseEntity<Object>> future = ((ExecutorService) virtualThreadExecutor).submit(() -> {
             String ytDetail = youtubeVideo.toString();
-            String Email = request.getHeader("X-User-Email");
-            log.info(Email + "///");
-            boolean check = this.aiService.AISongVerification(ytDetail);
+            String userEmail = request.getHeader("X-User-Email");
+            boolean check = this.aiService.aiSongVerification(ytDetail);
             if (check) {
-                SONG_YT_DTO dto_yt = aiService.AiSongMapping(ytDetail + " " + Email);
-                log.info(dto_yt.toString());
+                SONG_YT_DTO dto_yt = aiService.aiSongMapping(ytDetail, userEmail);
                 String dto_json = objectMapper.writeValueAsString(dto_yt);
                 kafkaDownloadReq.publishDownloadRequest(dto_json);
                 return ResponseEntity.ok("Under ai review for verification. Please check back in the Songs section within the next few min.");

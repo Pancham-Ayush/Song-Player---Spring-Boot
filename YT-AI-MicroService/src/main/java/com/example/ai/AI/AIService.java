@@ -1,45 +1,63 @@
 package com.example.ai.AI;
 
 import com.example.ai.DTO.SONG_YT_DTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
+@Slf4j
 @Service
 public class AIService {
 
-    private final ChatClient MistralAiChatModel;
+    private final ChatClient mistralChatClient;
+    //  String Template
+    @Value("classpath:prompt/verification.st")
+    private Resource verificationPrompt;
 
-    public AIService(@Qualifier("myMistralChatModel") ChatClient MistralAiChatModel) {
-        this.MistralAiChatModel = MistralAiChatModel;
+    @Value("classpath:prompt/pojo-prompt.st")
+    private Resource pojoPrompt;
+
+    public AIService(@Qualifier("myMistralChatModel") ChatClient mistralChatClient) {
+        this.mistralChatClient = mistralChatClient;
     }
 
-    public boolean AISongVerification(String message) {
-        res r = (res) this.MistralAiChatModel
-                .prompt()
-                .system("You are a verification assistant.\nGiven the input text containing title, description, artist/singer, and optionally a link,\ndecide whether the content represents any kind of music-related material such as\na song, music video, folklore performance, pop song , rock music, spiritual song or any type of beat.\nand if its a short or reel  its not a song\n\nRespond only with a single word:\n\"true\" if it is music-related,\n\"false\" if it is not.\n")
-                .user(message)
-                .call()
-                .entity(res.class);
-        return r.b();
-    }
+    public boolean aiSongVerification(String message) {
+        try {
+            res response = mistralChatClient
+                    .prompt()
+                    .user(u -> u.text(verificationPrompt)
+                            .params(Map.of("message", message)))
+                    .call()
+                    .entity(res.class);
 
-    public SONG_YT_DTO AiSongMapping(String message) {
-
-        String prompt = "You are a music data extractor.\nGiven the following YouTube video details, extract:\n- songName: name/title of the song\n- artistName: singer, creator, or channel\n- description: a summary of the content be specific\n- genre: one of [music, song, bhajan, devotional, lofi, instrumental, podcast, other]\n= youtubeUrl: url only of youtube from the description\nIf data is missing, infer intelligently.\nInput:\n%s\nOutput in JSON format.\n".formatted(message);
-        SONG_YT_DTO obj = (SONG_YT_DTO) this.MistralAiChatModel
-                .prompt()
-                .system("Extract structured information about the music content from the text provided.")
-                .user(prompt)
-                .call()
-                .entity(SONG_YT_DTO.class);
-        if (obj == null)
-            return null;
-        else {
-            return obj;
+            return response != null && response.verify();
+        } catch (Exception e) {
+            return false;
         }
     }
 
-    record res(boolean b) {
+    public SONG_YT_DTO aiSongMapping(String data, String email) {
+        try {
+            return mistralChatClient
+                    .prompt()
+                    .user(u -> u.text(pojoPrompt)
+                            .params(Map.of("data", data, "email", email)))
+                    .call()
+                    .entity(SONG_YT_DTO.class);
+        } catch (Exception e) {
+            log.info("aiSongMapping error" + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * LLM structured output DTO for verification
+     */
+    public record res(boolean verify) {
     }
 }
